@@ -1,0 +1,278 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Designation {
+  id             String   @id @default(uuid())
+  organizationId String
+  name           String   @unique
+  description    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model User {
+  id             String   @id @default(uuid())
+  organizationId String
+  name           String
+  username       String   @unique
+  password       String
+  role           String   @default("User")
+  lastActive     DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Buyer {
+  id              String   @id @default(uuid())
+  organizationId  String
+  name            String
+  logoUrl         String?
+  website         String?
+  country         String?
+  companyPhone    String?
+  paymentTerms    String?
+  incoterms       String?
+  agentName       String?
+  agentCommission Float?
+  addresses       String?
+  contacts        String?
+  orders          Order[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Supplier {
+  id             String   @id @default(uuid())
+  organizationId String
+  name           String
+  category       String?
+  rating         Float?
+  location       String?
+  contactPerson  String?
+  phone          String?
+  address        String?
+  salesTaxId     String?
+  productLine    String?
+  creditTerms    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Order {
+  id               String   @id @default(uuid())
+  organizationId   String
+  orderID          String   @unique
+  poNumber         String?
+  styleNo          String?
+  buyerId          String?
+  buyer            Buyer?   @relation(fields: [buyerId], references: [id])
+  merchandiserName String?
+  quantity         Int?
+  deliveryDate     DateTime?
+  status           String   @default("Draft")
+  amount           Float?
+  price            Float?
+  factoryRef       String?
+  styleName        String?
+  styleDescription String?
+  fabricName       String?
+  fabricDescription String?
+  incoterms        String?
+  shipMode         String?
+  imageUrl         String?
+  
+  sizeGroups       SizeGroup[]
+  bom              BomItem[]
+  samplingDetails  SampleRow[]
+  
+  criticalPath     String?
+
+  planningNotes    String?
+  statusReason     String?
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model SizeGroup {
+  id        String   @id @default(uuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  groupName String?
+  unitPrice String?
+  currency  String?
+  sizes     String?
+  colors    String?
+  breakdown String?
+}
+
+model BomItem {
+  id              String   @id @default(uuid())
+  orderId         String
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  processGroup    String?
+  componentName   String?
+  itemDetail      String?
+  supplierRef     String?
+  vendor          String?
+  sourcingStatus  String?
+  labStatus       String?
+  leadTimeDays    Int?
+  usageRule       String?
+  usageData       String?
+  wastagePercent  Float?
+  isTestingRequired Boolean?
+  isApproved      Boolean?
+  uom             String?
+  unitsPerPack    Int?
+  packingUnit     String?
+}
+
+model SampleRow {
+  id              String   @id @default(uuid())
+  orderId         String
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  samNumber       String?
+  type            String?
+  fabric          String?
+  shade           String?
+  wash            String?
+  baseSize        String?
+  threadColor     String?
+  zipperColor     String?
+  lining          String?
+  quantity        String?
+  deadline        String?
+  status          String?
+  labStatus       String?
+  isTestingRequired Boolean?
+  isApproved      Boolean?
+}
+
+model CompanySettings {
+  id             String   @id @default(uuid())
+  organizationId String
+  taxRate        Float?
+  cottonRate     Float?
+  currencyRates  String?  // JSON string: {"USD": 1, "EUR": 0.92, "GBP": 0.79}
+  lastUpdated    DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model SalesTerms {
+  id             String   @id @default(uuid())
+  organizationId String
+  name           String   // e.g., "Default Sales Terms", "Bulk Order Terms"
+  content        String   @db.Text
+  isDefault      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model POTerms {
+  id             String   @id @default(uuid())
+  organizationId String
+  name           String
+  content        String   @db.Text
+  isDefault      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model MonthlyTarget {
+  id             String   @id @default(uuid())
+  organizationId String
+  month          String
+  salesTarget    Float
+  volumeTarget   Float
+  year           Int      @default(2026)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  @@unique([organizationId, month, year])
+}
+
+model Location {
+  id             String   @id @default(uuid())
+  organizationId String
+  name           String   @unique
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model ThreadOperation {
+  id             String   @id @default(uuid())
+  organizationId String
+  category       String   // e.g., "Tops", "Bottoms", "Universal"
+  name           String   // e.g., "Front Rise", "Shoulder Join"
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model MachineFactor {
+  id             String   @id @default(uuid())
+  organizationId String
+  machineType    String   @unique // e.g., "Lockstitch", "Overlock / Serger"
+  factor         Float    // e.g., 2.5, 3.5
+  description    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model GarmentTemplate {
+  id             String   @id @default(uuid())
+  organizationId String
+  name           String   // e.g., "Jeans", "Jacket", "Shirt"
+  description    String?
+  GarmentTemplateStep GarmentTemplateStep[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model GarmentTemplateStep {
+  id             String   @id @default(uuid())
+  templateId     String
+  template       GarmentTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  stepOrder      Int
+  operation      String
+  machineType    String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model ProductionLine {
+  id             String   @id @default(uuid())
+  organizationId String
+  name           String
+  description    String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model PackingInstruction {
+  id             String   @id @default(uuid())
+  organizationId String
+  name           String
+  content        String   @db.Text
+  isDefault      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model ProcessStep {
+  id             String   @id @default(uuid())
+  organizationId String
+  name           String
+  description    String?
+  sequenceOrder  Int
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
