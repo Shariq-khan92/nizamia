@@ -2,7 +2,7 @@
 import axios from 'axios';
 import { SystemUser, Order, NewOrderState } from '../types';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+const API_URL = process.env.REACT_APP_API_URL || 'https://nizamia-apparel.vercel.app/api';
 
 const apiClient = axios.create({
     baseURL: API_URL,
