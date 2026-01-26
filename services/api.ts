@@ -2,7 +2,10 @@
 import axios from 'axios';
 import { SystemUser, Order, NewOrderState } from '../types';
 
-const API_URL = process.env.REACT_APP_API_URL || 'https://nizamia-apparel.vercel.app/api';
+const API_URL = process.env.REACT_APP_API_URL ||
+    (window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : 'https://nizamia-apparel.vercel.app/api');
+
+console.log('API URL:', API_URL); // Debug log
 
 const apiClient = axios.create({
     baseURL: API_URL,
@@ -21,8 +24,21 @@ apiClient.interceptors.request.use((config) => {
             config.headers.Authorization = `Bearer ${token}`;
         }
     }
+    console.log('Making request to:', config.url); // Debug log
     return config;
 });
+
+// Response interceptor for debugging
+apiClient.interceptors.response.use(
+    (response) => {
+        console.log('Response received:', response.status, response.config.url);
+        return response;
+    },
+    (error) => {
+        console.error('API Error:', error.response?.status, error.response?.data || error.message);
+        return Promise.reject(error);
+    }
+);
 
 export const authService = {
     login: async (credentials: any) => {
