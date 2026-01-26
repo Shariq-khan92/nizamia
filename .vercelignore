@@ -1,5 +1,0 @@
-# Exclude backend files from frontend build
-api/
-server/
-*.prisma
-.env*
