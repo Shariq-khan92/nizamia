@@ -29,35 +29,19 @@ app.use(limiter);
 
 // General Middleware
 app.use(cors({
-    origin: function (origin, callback) {
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) return callback(null, true);
-
-        // Allow localhost for development
-        if (origin.includes('localhost')) return callback(null, true);
-
-        // Allow Vercel deployments
-        if (origin.includes('vercel.app')) return callback(null, true);
-
-        // Allow your specific domains
-        const allowedOrigins = [
-            'https://nizamia-frontend.vercel.app',
-            'https://nizamia-apparel.vercel.app',
-            'https://nizamia-apparel-main.vercel.app'
-        ];
-
-        if (allowedOrigins.includes(origin)) {
-            return callback(null, true);
-        }
-
-        return callback(new Error('Not allowed by CORS'));
-    },
+    origin: true, // Allow all origins for debugging
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
 app.use(express.json());
+
+// Add request logging middleware
+app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.url} - Origin: ${req.headers.origin}`);
+    next();
+});
 
 // Handle preflight requests
 app.options('*', cors());
