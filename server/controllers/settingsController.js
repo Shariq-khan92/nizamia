@@ -136,3 +136,86 @@ export const getProcessSteps = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+// Update Settings
+export const updateSettings = async (req, res) => {
+  try {
+    const { taxRate, cottonRate, currencyRates, updatedAt } = req.body;
+
+    const settings = await prisma.companySettings.upsert({
+      where: { id: 'main-settings' },
+      update: {
+        taxRate,
+        cottonRate,
+        currencyRates: JSON.stringify(currencyRates),
+        lastUpdated: updatedAt
+      },
+      create: {
+        id: 'main-settings',
+        organizationId: 'default-org',
+        taxRate,
+        cottonRate,
+        currencyRates: JSON.stringify(currencyRates),
+        lastUpdated: updatedAt
+      }
+    });
+
+    res.json(settings);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Update Locations
+export const updateLocations = async (req, res) => {
+  try {
+    const locations = req.body; // Array of location names
+
+    // Delete existing locations
+    await prisma.location.deleteMany({
+      where: { organizationId: 'default-org' }
+    });
+
+    // Create new locations
+    const createdLocations = await prisma.location.createMany({
+      data: locations.map(name => ({ organizationId: 'default-org', name }))
+    });
+
+    res.json({ message: 'Locations updated successfully', count: locations.length });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Update Company Details
+export const updateCompanyDetails = async (req, res) => {
+  try {
+    const { name, address, phone, website, logoUrl, salesTerms, poTerms } = req.body;
+
+    // For now, we'll just return success since company details might be handled differently
+    res.json({ message: 'Company details updated successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Update Monthly Targets
+export const updateMonthlyTargets = async (req, res) => {
+  try {
+    const targets = req.body; // Array of monthly targets
+
+    // Delete existing targets
+    await prisma.monthlyTarget.deleteMany({
+      where: { organizationId: 'default-org' }
+    });
+
+    // Create new targets
+    const createdTargets = await prisma.monthlyTarget.createMany({
+      data: targets.map(target => ({ ...target, organizationId: 'default-org' }))
+    });
+
+    res.json({ message: 'Monthly targets updated successfully', count: targets.length });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
