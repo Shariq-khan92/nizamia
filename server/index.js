@@ -29,11 +29,38 @@ app.use(limiter);
 
 // General Middleware
 app.use(cors({
-    origin: 'https://nizamia-frontend.vercel.app',
-    credentials: true
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+
+        // Allow localhost for development
+        if (origin.includes('localhost')) return callback(null, true);
+
+        // Allow Vercel deployments
+        if (origin.includes('vercel.app')) return callback(null, true);
+
+        // Allow your specific domains
+        const allowedOrigins = [
+            'https://nizamia-frontend.vercel.app',
+            'https://nizamia-apparel.vercel.app',
+            'https://nizamia-apparel-main.vercel.app'
+        ];
+
+        if (allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+
+        return callback(new Error('Not allowed by CORS'));
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 app.use(express.json());
+
+// Handle preflight requests
+app.options('*', cors());
 
 // Routes
 import authRoutes from './routes/authRoutes.js';
@@ -43,7 +70,6 @@ import buyerRoutes from './routes/buyerRoutes.js';
 import financeRoutes from './routes/financeRoutes.js';
 import settingsRoutes from './routes/settingsRoutes.js';
 import designationRoutes from './routes/designationRoutes.js';
-import settingsRoutes from './routes/settingsRoutes.js';
 
 app.use('/api/auth', authRoutes);
 app.use('/api/orders', orderRoutes);
