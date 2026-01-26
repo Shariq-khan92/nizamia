@@ -3,7 +3,7 @@ import axios from 'axios';
 import { SystemUser, Order, NewOrderState } from '../types';
 
 const API_URL = process.env.REACT_APP_API_URL ||
-    (window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : 'https://nizamia-apparel.vercel.app/api');
+    (window.location.hostname === 'localhost' ? 'http://localhost:3001/api' : 'https://nizamia-apparel.vercel.app/api');
 
 console.log('API URL:', API_URL); // Debug log
 
