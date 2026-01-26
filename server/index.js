@@ -28,7 +28,14 @@ app.set('trust proxy', 1);
 
 // CORS Configuration - Must be before other middleware
 const corsOptions = {
-    origin: ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:3000', 'http://127.0.0.1:5173'],
+    origin: [
+        'http://localhost:3000',
+        'http://localhost:5173',
+        'http://127.0.0.1:3000',
+        'http://127.0.0.1:5173',
+        'https://nizamia-frontend.vercel.app',
+        'https://nizamia-apparel.vercel.app'
+    ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     credentials: true,
