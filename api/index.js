@@ -61,7 +61,8 @@ async function testDatabaseConnection() {
     }
 }
 
-testDatabaseConnection();
+// Remove immediate database connection - will connect on first request
+// testDatabaseConnection();
 
 // Routes
 import authRoutes from '../server/routes/authRoutes.js';
