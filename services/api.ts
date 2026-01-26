@@ -161,6 +161,42 @@ export const api = {
     getMonthlyTargets: settingsService.getMonthlyTargets,
     getPackingInstructions: settingsService.getPackingInstructions,
     getProcessSteps: settingsService.getProcessSteps,
+
+    // Finance
+    getExportInvoices: async () => {
+        const response = await apiClient.get('/finance');
+        return response.data;
+    },
+    createExportInvoice: async (data: any) => {
+        const response = await apiClient.post('/finance', data);
+        return response.data;
+    },
+    updateExportInvoice: async (id: string, data: any) => {
+        const response = await apiClient.put(`/finance/${id}`, data);
+        return response.data;
+    },
+    deleteExportInvoice: async (id: string) => {
+        const response = await apiClient.delete(`/finance/${id}`);
+        return response.data;
+    },
+
+    // Settings Updates
+    updateSettings: async (data: any) => {
+        const response = await apiClient.put('/settings/settings', data);
+        return response.data;
+    },
+    updateLocations: async (data: any) => {
+        const response = await apiClient.put('/settings/locations', data);
+        return response.data;
+    },
+    updateCompanyDetails: async (data: any) => {
+        const response = await apiClient.put('/settings/company-details', data);
+        return response.data;
+    },
+    updateMonthlyTargets: async (data: any) => {
+        const response = await apiClient.put('/settings/monthly-targets', data);
+        return response.data;
+    },
 };
 
 export default api;
