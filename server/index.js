@@ -26,37 +26,35 @@ testDatabaseConnection();
 // Vercel proxy support
 app.set('trust proxy', 1);
 
-// Security Middleware
-app.use(helmet());
+// CORS Configuration - Must be before other middleware
+const corsOptions = {
+    origin: ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:3000', 'http://127.0.0.1:5173'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    credentials: true,
+    optionsSuccessStatus: 200
+};
+app.use(cors(corsOptions));
+
+// Handle preflight requests explicitly
+app.options('*', cors(corsOptions));
+
+// Security Middleware - after CORS
+app.use(helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" }
+}));
 app.use(hpp());
 
-// Final Fix for ValidationError
+// Rate limiting
 const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, 
-    limit: 100, 
+    windowMs: 15 * 60 * 1000,
+    limit: 100,
     standardHeaders: 'draft-7',
     legacyHeaders: false,
-    validate: { trustProxy: false }, // Ye line ValidationError ko khatam kar degi
+    validate: { trustProxy: false },
 });
 app.use(limiter);
-
-app.use(express.json());
-
-// Add CORS headers manually for all routes
-app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-    res.header('Access-Control-Allow-Credentials', 'true');
-
-    // Handle preflight requests
-    if (req.method === 'OPTIONS') {
-        res.sendStatus(200);
-        return;
-    }
-
-    next();
-});
 
 app.use(express.json());
 
@@ -64,12 +62,6 @@ app.use(express.json());
 app.use((req, res, next) => {
     console.log(`${new Date().toISOString()} - ${req.method} ${req.url} - Origin: ${req.headers.origin || 'none'}`);
     next();
-});
-
-// Handle preflight requests
-app.options('*', (req, res) => {
-    console.log('Handling OPTIONS preflight request');
-    res.sendStatus(200);
 });
 
 // Routes
