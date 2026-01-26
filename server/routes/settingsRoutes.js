@@ -1,16 +1,12 @@
 import express from 'express';
 import {
-  getSettings,
-  getLocations,
-  getSalesTerms,
-  getPOTerms,
-  getThreadOperations,
-  getMachineFactors,
-  getGarmentTemplates,
-  getProductionLines,
-  getMonthlyTargets,
-  getPackingInstructions,
-  getProcessSteps,
+  getSettings, updateSettings,
+  getLocations, updateLocations,
+  getSalesTerms, getPOTerms,
+  getThreadOperations, getMachineFactors, getGarmentTemplates,
+  getProductionLines, getMonthlyTargets, updateMonthlyTargets,
+  getPackingInstructions, getProcessSteps,
+  updateCompanyDetails
 } from '../controllers/settingsController.js';
 
 const router = express.Router();
