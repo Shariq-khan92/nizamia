@@ -5,11 +5,6 @@ import helmet from 'helmet';
 import hpp from 'hpp';
 import rateLimit from 'express-rate-limit';
 import prisma from './config/prisma.js';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 dotenv.config();
 
@@ -44,8 +39,9 @@ const limiter = rateLimit({
     validate: { trustProxy: false }, // Ye line ValidationError ko khatam kar degi
 });
 app.use(limiter);
-// Serve static files from the React app build directory
-app.use(express.static(path.join(__dirname, '../dist')));
+
+app.use(express.json());
+
 // Add CORS headers manually for all routes
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
@@ -110,12 +106,7 @@ app.get('/health', async (req, res) => {
 });
 
 app.get('/', (req, res) => {
-    res.send('Nizamia OMS Backend is running!');
-});
-
-// Catch all handler: send back React's index.html file for any non-API routes
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../dist/index.html'));
+    res.send('Nizamia OMS Backend API is running!');
 });
 
 // Export for Vercel
