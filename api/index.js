@@ -104,5 +104,6 @@ app.get('/', (req, res) => {
     res.send('Nizamia OMS Backend API is running!');
 });
 
-// Export for Vercel
+// Export for Vercel - using both default and named export for compatibility
 export default app;
+export { app };
