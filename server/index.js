@@ -38,6 +38,9 @@ app.use(express.json());
 // Routes
 import authRoutes from './routes/authRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
+import supplierRoutes from './routes/supplierRoutes.js';
+import buyerRoutes from './routes/buyerRoutes.js';
+import financeRoutes from './routes/financeRoutes.js';
 import designationRoutes from './routes/designationRoutes.js';
 import settingsRoutes from './routes/settingsRoutes.js';
 
