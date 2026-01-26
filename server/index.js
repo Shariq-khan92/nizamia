@@ -4,11 +4,24 @@ import dotenv from 'dotenv';
 import helmet from 'helmet';
 import hpp from 'hpp';
 import rateLimit from 'express-rate-limit';
+import prisma from './config/prisma.js';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// Test database connection
+async function testDatabaseConnection() {
+    try {
+        await prisma.$connect();
+        console.log('✅ Database connected successfully');
+    } catch (error) {
+        console.error('❌ Database connection failed:', error.message);
+    }
+}
+
+testDatabaseConnection();
 
 // Vercel proxy support
 app.set('trust proxy', 1);
@@ -70,6 +83,25 @@ app.use('/api/auth', authRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/designations', designationRoutes);
 app.use('/api/settings', settingsRoutes);
+
+app.get('/health', async (req, res) => {
+    try {
+        // Test database connection
+        await prisma.$queryRaw`SELECT 1`;
+        res.json({
+            status: 'OK',
+            timestamp: new Date().toISOString(),
+            database: 'connected'
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: 'ERROR',
+            timestamp: new Date().toISOString(),
+            database: 'disconnected',
+            error: error.message
+        });
+    }
+});
 
 app.get('/', (req, res) => {
     res.send('Nizamia OMS Backend is running!');
