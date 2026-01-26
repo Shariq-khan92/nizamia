@@ -27,24 +27,35 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// General Middleware
-app.use(cors({
-    origin: true, // Allow all origins for debugging
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-}));
+// Add CORS headers manually for all routes
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+    res.header('Access-Control-Allow-Credentials', 'true');
+
+    // Handle preflight requests
+    if (req.method === 'OPTIONS') {
+        res.sendStatus(200);
+        return;
+    }
+
+    next();
+});
 
 app.use(express.json());
 
 // Add request logging middleware
 app.use((req, res, next) => {
-    console.log(`${new Date().toISOString()} - ${req.method} ${req.url} - Origin: ${req.headers.origin}`);
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.url} - Origin: ${req.headers.origin || 'none'}`);
     next();
 });
 
 // Handle preflight requests
-app.options('*', cors());
+app.options('*', (req, res) => {
+    console.log('Handling OPTIONS preflight request');
+    res.sendStatus(200);
+});
 
 // Routes
 import authRoutes from './routes/authRoutes.js';
@@ -64,6 +75,12 @@ app.get('/', (req, res) => {
     res.send('Nizamia OMS Backend is running!');
 });
 
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
+// Export for Vercel
+export default app;
+
+// Only start server if not in Vercel environment
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, () => {
+        console.log(`Server is running on port ${PORT}`);
+    });
+}
