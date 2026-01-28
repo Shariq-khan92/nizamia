@@ -74,7 +74,9 @@ model Order {
   buyer            Buyer?   @relation(fields: [buyerId], references: [id])
   merchandiserName String?
   quantity         Int?
+  poDate           DateTime?
   deliveryDate     DateTime?
+  plannedDate      DateTime?
   status           String   @default("Draft")
   amount           Float?
   price            Float?
@@ -96,6 +98,16 @@ model Order {
   planningNotes    String?
   statusReason     String?
   
+  colors           String? // JSON
+  fitting          String? // JSON
+  washing          String? // JSON
+  embellishments   String? // JSON
+  finishing        String? // JSON
+  skippedStages    String? // JSON
+  
+  bomStatus        String?
+  createdBy        String?
+
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 }
@@ -320,6 +332,133 @@ model BOMPreset {
   name           String
   buyerName      String?
   items          String?  @db.Text // JSON array of MasterBOMItem IDs stored as string
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model JobBatch {
+  id               String   @id @default(uuid())
+  organizationId   String
+  batchName        String
+  styles           String?  @db.Text // JSON array of Order IDs
+  totalQty         Int      @default(0)
+  status           String   @default("Planning") // Planning, Ready to Ship, Booked, Shipped, Completed
+  exFactoryDate    String?
+  plans            String?  @db.Text // JSON object with plan statuses
+  purchasingRequests String? @db.Text // JSON array
+  workOrderRequests  String? @db.Text // JSON array
+  cuttingPlanDetails String? @db.Text // JSON array
+  dailyLogs        String?  @db.Text // JSON array
+  productionProgress String? @db.Text // JSON object
+  stageSchedules   String?  @db.Text // JSON object
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model IssuedWorkOrder {
+  id             String   @id @default(uuid())
+  organizationId String
+  jobId          String?
+  woNumber       String
+  vendorName     String?
+  stage          String?
+  dateIssued     String?
+  targetDate     String?
+  status         String   @default("Issued") // Issued, In Progress, Completed
+  items          String?  @db.Text // JSON array of WorkOrderRequest
+  notes          String?
+  totalQty       Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model IssuedPurchaseOrder {
+  id             String   @id @default(uuid())
+  organizationId String
+  jobId          String?
+  poNumber       String
+  supplierId     String?
+  supplierName   String?
+  issueDate      String?
+  deliveryDate   String?
+  items          String?  @db.Text // JSON array of PurchasingRequest items
+  totalAmount    Float?
+  currency       String?
+  status         String   @default("Pending") // Pending, Issued, Partial, Received
+  terms          String?
+  attachments    String?  @db.Text // JSON array of file references
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model DevelopmentSample {
+  id               String   @id @default(uuid())
+  organizationId   String
+  samNumber        String?
+  buyer            String?
+  styleNo          String?
+  type             String?
+  fabric           String?
+  shade            String?
+  wash             String?
+  baseSize         String?
+  threadColor      String?
+  zipperColor      String?
+  lining           String?
+  quantity         String?
+  deadline         String?
+  status           String   @default("Pending")
+  labStatus        String?
+  isTestingRequired Boolean @default(false)
+  season           String?
+  notes            String?  @db.Text
+  currentStage     String?
+  lastUpdated      String?
+  commentsReceivedDate String?
+  commentsSentBy   String?
+  emailAttachmentRef String?
+  imageUrl         String?
+  description      String?  @db.Text
+  fitName          String?
+  specsFile        String?
+  bom              String?  @db.Text // JSON array
+  embellishments   String?  @db.Text // JSON array
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model Parcel {
+  id             String   @id @default(uuid())
+  organizationId String
+  orderId        String?
+  jobId          String?
+  parcelNumber   String?
+  cartons        Int      @default(0)
+  grossWeight    Float?
+  netWeight      Float?
+  cbm            Float?
+  shippingMark   String?
+  dispatchDate   String?
+  status         String   @default("Pending") // Pending, Packed, Dispatched, Delivered
+  documents      String?  @db.Text // JSON array of document references
+  invoiceRef     String?
+  containerNo    String?
+  sealNo         String?
+  destination    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model CalendarEvent {
+  id             String   @id @default(uuid())
+  organizationId String
+  title          String
+  description    String?  @db.Text
+  startDate      String
+  endDate        String?
+  type           String?  // order, shipment, meeting, deadline, custom
+  relatedOrderId String?
+  color          String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }

@@ -47,8 +47,8 @@ interface SamplingDashboardProps {
     jobs?: JobBatch[];
     onUpdateJob?: (job: JobBatch) => void;
     developmentSamples?: DevelopmentSample[];
-    onUpdateDevSample?: (sample: DevelopmentSample) => void;
-    onAddDevSample?: (sample: DevelopmentSample) => void;
+    onUpdateDevSample?: (sample: DevelopmentSample) => Promise<DevelopmentSample | void>;
+    onAddDevSample?: (sample: DevelopmentSample) => Promise<DevelopmentSample | void>;
     parcels: Parcel[];
     availableBuyers?: Buyer[];
     companyDetails?: CompanyDetails;
@@ -78,7 +78,7 @@ const NewDevSampleModal = ({
     isOpen: boolean,
     onClose: () => void,
     buyers: Buyer[],
-    onSave: (sample: DevelopmentSample) => void,
+    onSave: (sample: DevelopmentSample) => Promise<void | DevelopmentSample>,
     nextSamNumber: string
 }) => {
     const [formData, setFormData] = useState<Partial<DevelopmentSample>>({
@@ -146,7 +146,7 @@ const NewDevSampleModal = ({
         }));
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!formData.buyer || !formData.styleNo) {
             alert("Buyer and Style Number are required.");
             return;
@@ -161,8 +161,8 @@ const NewDevSampleModal = ({
             threadColor: formData.bom?.find(i => i.componentName.toLowerCase().includes('thread'))?.componentName || 'Match',
             zipperColor: formData.bom?.find(i => i.componentName.toLowerCase().includes('zipper'))?.componentName || 'Match',
             lining: formData.bom?.find(i => i.componentName.toLowerCase().includes('lining'))?.componentName || '-'
-        };
-        onSave(finalSample);
+        }
+        await onSave(finalSample);
         onClose();
     };
 

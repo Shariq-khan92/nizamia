@@ -48,7 +48,7 @@ app.use(hpp());
 // Rate limiting
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    limit: 100,
+    limit: 2000,
     standardHeaders: 'draft-7',
     legacyHeaders: false,
     validate: { trustProxy: false },
@@ -74,6 +74,12 @@ import designationRoutes from './routes/designationRoutes.js';
 import agencyRoutes from './routes/agencyRoutes.js';
 import masterBOMRoutes from './routes/masterBOMRoutes.js';
 import presetRoutes from './routes/presetRoutes.js';
+import jobRoutes from './routes/jobRoutes.js';
+import workOrderRoutes from './routes/workOrderRoutes.js';
+import purchaseOrderRoutes from './routes/purchaseOrderRoutes.js';
+import sampleRoutes from './routes/sampleRoutes.js';
+import parcelRoutes from './routes/parcelRoutes.js';
+import eventRoutes from './routes/eventRoutes.js';
 
 app.use('/api/auth', authRoutes);
 app.use('/api/orders', orderRoutes);
@@ -85,6 +91,12 @@ app.use('/api/finance', financeRoutes);
 app.use('/api/agencies', agencyRoutes);
 app.use('/api/bom-master', masterBOMRoutes);
 app.use('/api/bom-presets', presetRoutes);
+app.use('/api/jobs', jobRoutes);
+app.use('/api/work-orders', workOrderRoutes);
+app.use('/api/purchase-orders', purchaseOrderRoutes);
+app.use('/api/samples', sampleRoutes);
+app.use('/api/parcels', parcelRoutes);
+app.use('/api/events', eventRoutes);
 
 app.get('/health', async (req, res) => {
     try {

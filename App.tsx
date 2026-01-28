@@ -42,6 +42,13 @@ const mapUserToSystemUser = (data: any): SystemUser => ({
   lastActive: new Date().toISOString(),
 });
 
+
+const ensureISO = (dateStr?: string): string | undefined => {
+  if (!dateStr) return undefined;
+  if (dateStr.includes('T')) return dateStr;
+  return `${dateStr}T00:00:00.000Z`;
+};
+
 export const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>(Tab.DASHBOARD);
@@ -61,6 +68,12 @@ export const App: React.FC = () => {
       api.getAgencies().then(setAgencies).catch(console.error);
       api.getMasterBOMItems().then(setMasterBOMItems).catch(console.error);
       api.getBOMPresets().then(setBomPresets).catch(console.error);
+      api.getJobs().then(setJobs).catch(console.error);
+      api.getWorkOrders().then(setIssuedWorkOrders).catch(console.error);
+      api.getPurchaseOrders().then(setIssuedPOs).catch(console.error);
+      api.getSamples().then(setDevelopmentSamples).catch(console.error);
+      api.getParcels().then(setParcels).catch(console.error);
+      api.getEvents().then(setCustomEvents).catch(console.error);
     }
   }, [isAuthenticated]);
 
@@ -172,7 +185,13 @@ export const App: React.FC = () => {
 
   const mapOrderToDeepState = (order: Order): NewOrderState => {
     let fittingData: FittingData[] = [];
-    if (Array.isArray(order.fitting)) {
+    if (typeof order.fitting === 'string') {
+      try {
+        fittingData = JSON.parse(order.fitting);
+      } catch {
+        fittingData = [];
+      }
+    } else if (Array.isArray(order.fitting)) {
       fittingData = order.fitting;
     } else if (order.fitting) {
       fittingData = [{ ...(order.fitting as any), id: 'legacy-fit' }];
@@ -196,18 +215,18 @@ export const App: React.FC = () => {
           incoterms: order.incoterms || '',
         },
         styleImage: order.imageUrl || null,
-        colors: order.colors || [],
-        sizeGroups: order.sizeGroups || []
+        colors: typeof order.colors === 'string' ? JSON.parse(order.colors) : (order.colors || []),
+        sizeGroups: order.sizeGroups || [] // sizeGroups is relational, no change needed usually unless mapped differently
       },
       fitting: fittingData,
       sampling: order.samplingDetails || [],
-      embellishments: order.embellishments || [],
-      washing: order.washing || {},
-      finishing: order.finishing || {
+      embellishments: typeof order.embellishments === 'string' ? JSON.parse(order.embellishments) : (order.embellishments || []),
+      washing: typeof order.washing === 'string' ? JSON.parse(order.washing) : (order.washing || {}),
+      finishing: typeof order.finishing === 'string' ? JSON.parse(order.finishing) : (order.finishing || {
         finalInspectionStatus: 'Pending',
         packingList: []
-      },
-      criticalPath: order.criticalPath || {
+      }),
+      criticalPath: typeof order.criticalPath === 'string' ? JSON.parse(order.criticalPath) : (order.criticalPath || {
         capacity: {
           totalOrderQty: order.quantity,
           fabricLeadTime: 0,
@@ -218,11 +237,11 @@ export const App: React.FC = () => {
           finishingOutput: 0,
         },
         schedule: []
-      },
+      }),
       bom: order.bom || [],
       bomStatus: order.bomStatus || 'Draft',
       planningNotes: order.planningNotes || '',
-      skippedStages: order.skippedStages || []
+      skippedStages: typeof order.skippedStages === 'string' ? JSON.parse(order.skippedStages) : (order.skippedStages || [])
     };
   };
 
@@ -266,16 +285,36 @@ export const App: React.FC = () => {
 
     const finalPrice = calculatedTotalQty > 0 ? (calculatedTotalAmt / calculatedTotalQty) : 0;
 
-    const orderPayload: Partial<Order> = {
+    // Resolve Buyer ID
+    const selectedBuyer = buyers.find(b => b.name === newOrderState.generalInfo.formData.buyerName);
+
+    // Prepare nested data for Creation only (simple version)
+    // We strip IDs for creation and serialize complex fields to strings for Prisma
+    const sizeGroupsCreate = newOrderState.generalInfo.sizeGroups.map(({ id, colors, breakdown, sizes, ...rest }) => ({
+      ...rest,
+      colors: JSON.stringify(colors),
+      breakdown: JSON.stringify(breakdown),
+      sizes: JSON.stringify(sizes)
+    }));
+
+    const bomCreate = newOrderState.bom.map(({ id, usageData, ...rest }) => ({
+      ...rest,
+      usageData: typeof usageData === 'object' ? JSON.stringify(usageData) : (usageData || null)
+    }));
+
+    const samplingCreate = newOrderState.sampling.map(({ id, ...rest }) => rest);
+
+    const orderPayload: any = {
       orderID: newOrderState.generalInfo.formData.jobNumber,
       poNumber: newOrderState.generalInfo.formData.poNumber,
-      poDate: newOrderState.generalInfo.formData.poDate,
+      poDate: ensureISO(newOrderState.generalInfo.formData.poDate),
       styleNo: newOrderState.generalInfo.formData.styleNumber,
-      buyer: newOrderState.generalInfo.formData.buyerName,
+      buyerId: selectedBuyer?.id,
+      buyer: undefined,
       merchandiserName: newOrderState.generalInfo.formData.merchandiserName,
       quantity: calculatedTotalQty,
-      deliveryDate: newOrderState.generalInfo.formData.shipDate,
-      plannedDate: newOrderState.generalInfo.formData.plannedDate,
+      deliveryDate: ensureISO(newOrderState.generalInfo.formData.shipDate),
+      plannedDate: ensureISO(newOrderState.generalInfo.formData.plannedDate),
       status: existingOrder?.status || 'Active',
       amount: calculatedTotalAmt,
       price: finalPrice,
@@ -287,26 +326,36 @@ export const App: React.FC = () => {
       incoterms: newOrderState.generalInfo.formData.incoterms,
       shipMode: newOrderState.generalInfo.formData.shipMode,
       imageUrl: newOrderState.generalInfo.styleImage || undefined,
-      colors: newOrderState.generalInfo.colors,
-      sizeGroups: newOrderState.generalInfo.sizeGroups,
-      bom: newOrderState.bom,
-      samplingDetails: newOrderState.sampling,
-      criticalPath: {
+
+      // Handle Relations - JSON fields are fine, but relations need 'create' syntax for New Orders
+      // For updates, this simple logic might overwrite or fail, so we conditionally apply 'create' only if isNew?
+      // Actually, for simplicity/MVP, let's only create nested on NEW orders.
+      // For updates, we rely on individual update APIs or assume this replaces? 
+      // Prisma update with { create: [] } ADDs items.
+
+      sizeGroups: isNew ? { create: sizeGroupsCreate } : undefined,
+      bom: isNew ? { create: bomCreate } : undefined,
+      samplingDetails: isNew ? { create: samplingCreate } : undefined,
+
+      criticalPath: JSON.stringify({
         ...newOrderState.criticalPath,
         capacity: {
           ...newOrderState.criticalPath.capacity,
           totalOrderQty: calculatedTotalQty
         }
-      },
-      washing: newOrderState.washing,
-      finishing: newOrderState.finishing,
-      fitting: newOrderState.fitting,
-      embellishments: newOrderState.embellishments,
+      }),
+      washing: JSON.stringify(newOrderState.washing),
+      finishing: JSON.stringify(newOrderState.finishing),
+      fitting: JSON.stringify(newOrderState.fitting),
+      embellishments: JSON.stringify(newOrderState.embellishments),
       bomStatus: newOrderState.bomStatus || 'Draft',
       planningNotes: newOrderState.planningNotes,
-      skippedStages: newOrderState.skippedStages,
+      skippedStages: JSON.stringify(newOrderState.skippedStages),
       createdBy: existingOrder?.createdBy || currentUser.name
     };
+
+    // Explicitly remove 'buyer' key to prevent Prisma validation error (it expects 'buyerId')
+    delete orderPayload.buyer;
 
     try {
       let savedOrder: Order;
@@ -397,6 +446,17 @@ export const App: React.FC = () => {
             setOrders([...data.orders, ...orders]);
             setExportInvoices([...data.invoices, ...exportInvoices]);
           }}
+          onCreateJob={async (job) => {
+            const saved = await api.createJob(job);
+            return saved;
+          }}
+          onUpdateJob={async (id, job) => {
+            const saved = await api.updateJob(id, job);
+            return saved;
+          }}
+          onDeleteJob={async (id) => {
+            await api.deleteJob(id);
+          }}
         />;
       case Tab.PLANNING:
         return <PlanningDashboard
@@ -405,9 +465,28 @@ export const App: React.FC = () => {
           onUpdateJobs={setJobs}
           onManageJobPlans={(job) => setActiveJobForConsole(job)}
           developmentSamples={developmentSamples}
-          onAddDevSample={(s) => setDevelopmentSamples(prev => [...prev, s])}
-          onUpdateDevSample={(s) => setDevelopmentSamples(prev => prev.map(ds => ds.id === s.id ? s : ds))}
+          onAddDevSample={async (s) => {
+            const saved = await api.createSample(s);
+            setDevelopmentSamples(prev => [...prev, saved]);
+            return saved;
+          }}
+          onUpdateDevSample={async (s) => {
+            const saved = await api.updateSample(s.id, s);
+            setDevelopmentSamples(prev => prev.map(ds => ds.id === s.id ? saved : ds));
+            return saved;
+          }}
+
           parcels={parcels}
+          onCreateParcel={async (p) => {
+            const saved = await api.createParcel(p);
+            setParcels(prev => [saved, ...prev]);
+            return saved;
+          }}
+          onUpdateParcel={async (p) => {
+            const saved = await api.updateParcel(p.id, p);
+            setParcels(prev => prev.map(parcel => parcel.id === p.id ? saved : parcel));
+            return saved;
+          }}
           onUpdateParcels={setParcels}
           availableBuyers={buyers}
           companyDetails={companyDetails}
@@ -421,8 +500,16 @@ export const App: React.FC = () => {
           jobs={jobs}
           onUpdateJob={(updatedJob) => setJobs(prev => prev.map(j => j.id === updatedJob.id ? updatedJob : j))}
           developmentSamples={developmentSamples}
-          onAddDevSample={(s) => setDevelopmentSamples(prev => [...prev, s])}
-          onUpdateDevSample={(s) => setDevelopmentSamples(prev => prev.map(ds => ds.id === s.id ? s : ds))}
+          onAddDevSample={async (s) => {
+            const saved = await api.createSample(s);
+            setDevelopmentSamples(prev => [...prev, saved]);
+            return saved;
+          }}
+          onUpdateDevSample={async (s) => {
+            const saved = await api.updateSample(s.id, s);
+            setDevelopmentSamples(prev => prev.map(ds => ds.id === s.id ? saved : ds));
+            return saved;
+          }}
           parcels={parcels}
           availableBuyers={buyers}
           companyDetails={companyDetails}
@@ -436,9 +523,27 @@ export const App: React.FC = () => {
           companyDetails={companyDetails}
           issuedPOs={issuedPOs}
           onUpdateIssuedPOs={setIssuedPOs}
+          onCreatePO={async (po) => {
+            return await api.createPurchaseOrder(po);
+          }}
+          onUpdatePO={async (id, po) => {
+            return await api.updatePurchaseOrder(id, po);
+          }}
+          onUpdateJob={async (id, job) => {
+            return await api.updateJob(id, job);
+          }}
+          suppliers={suppliers}
         />;
       case Tab.PRODUCTION:
-        return <ProductionFlowDashboard jobs={jobs} onUpdateJob={(j) => setJobs(prev => prev.map(job => job.id === j.id ? j : job))} />;
+        return <ProductionFlowDashboard jobs={jobs} onUpdateJob={async (j) => {
+          try {
+            const updated = await api.updateJob(j.id, j);
+            setJobs(prev => prev.map(job => job.id === j.id ? updated : job));
+          } catch (e) {
+            console.error(e);
+            alert("Failed to save job updates");
+          }
+        }} />;
       case Tab.BUYERS:
         return <BuyersDashboard buyers={buyers} onAddBuyer={async (b) => {
           try {
@@ -640,7 +745,15 @@ export const App: React.FC = () => {
               orders={orders}
               jobs={jobs}
               customEvents={customEvents}
-              onUpdateCustomEvents={setCustomEvents}
+              onCreateEvent={async (e) => {
+                const saved = await api.createEvent(e);
+                setCustomEvents(prev => [...prev, saved]);
+                return saved;
+              }}
+              onDeleteEvent={async (id) => {
+                await api.deleteEvent(id);
+                setCustomEvents(prev => prev.filter(e => e.id !== id));
+              }}
               onClose={() => setIsEventsModalOpen(false)}
             />
           </div>

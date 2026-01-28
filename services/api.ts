@@ -174,6 +174,120 @@ export const presetService = {
     }
 };
 
+export const jobService = {
+    getAll: async () => {
+        const response = await apiClient.get('/jobs');
+        return response.data;
+    },
+    create: async (data: any) => {
+        const response = await apiClient.post('/jobs', data);
+        return response.data;
+    },
+    update: async (id: string, data: any) => {
+        const response = await apiClient.put(`/jobs/${id}`, data);
+        return response.data;
+    },
+    delete: async (id: string) => {
+        const response = await apiClient.delete(`/jobs/${id}`);
+        return response.data;
+    }
+};
+
+export const workOrderService = {
+    getAll: async () => {
+        const response = await apiClient.get('/work-orders');
+        return response.data;
+    },
+    create: async (data: any) => {
+        const response = await apiClient.post('/work-orders', data);
+        return response.data;
+    },
+    update: async (id: string, data: any) => {
+        const response = await apiClient.put(`/work-orders/${id}`, data);
+        return response.data;
+    },
+    delete: async (id: string) => {
+        const response = await apiClient.delete(`/work-orders/${id}`);
+        return response.data;
+    }
+};
+
+export const purchaseOrderService = {
+    getAll: async () => {
+        const response = await apiClient.get('/purchase-orders');
+        return response.data;
+    },
+    create: async (data: any) => {
+        const response = await apiClient.post('/purchase-orders', data);
+        return response.data;
+    },
+    update: async (id: string, data: any) => {
+        const response = await apiClient.put(`/purchase-orders/${id}`, data);
+        return response.data;
+    },
+    delete: async (id: string) => {
+        const response = await apiClient.delete(`/purchase-orders/${id}`);
+        return response.data;
+    }
+};
+
+export const sampleService = {
+    getAll: async () => {
+        const response = await apiClient.get('/samples');
+        return response.data;
+    },
+    create: async (data: any) => {
+        const response = await apiClient.post('/samples', data);
+        return response.data;
+    },
+    update: async (id: string, data: any) => {
+        const response = await apiClient.put(`/samples/${id}`, data);
+        return response.data;
+    },
+    delete: async (id: string) => {
+        const response = await apiClient.delete(`/samples/${id}`);
+        return response.data;
+    }
+};
+
+export const parcelService = {
+    getAll: async () => {
+        const response = await apiClient.get('/parcels');
+        return response.data;
+    },
+    create: async (data: any) => {
+        const response = await apiClient.post('/parcels', data);
+        return response.data;
+    },
+    update: async (id: string, data: any) => {
+        const response = await apiClient.put(`/parcels/${id}`, data);
+        return response.data;
+    },
+    delete: async (id: string) => {
+        const response = await apiClient.delete(`/parcels/${id}`);
+        return response.data;
+    }
+};
+
+export const eventService = {
+    getAll: async () => {
+        const response = await apiClient.get('/events');
+        return response.data;
+    },
+    create: async (data: any) => {
+        const response = await apiClient.post('/events', data);
+        return response.data;
+    },
+    update: async (id: string, data: any) => {
+        const response = await apiClient.put(`/events/${id}`, data);
+        return response.data;
+    },
+    delete: async (id: string) => {
+        const response = await apiClient.delete(`/events/${id}`);
+        return response.data;
+    }
+};
+
 export const designationService = {
     getAll: async () => {
         const response = await apiClient.get('/designations');
@@ -289,6 +403,42 @@ export const api = {
     createBOMPreset: presetService.create,
     updateBOMPreset: presetService.update,
     deleteBOMPreset: presetService.delete,
+
+    // Jobs
+    getJobs: jobService.getAll,
+    createJob: jobService.create,
+    updateJob: jobService.update,
+    deleteJob: jobService.delete,
+
+    // Work Orders
+    getWorkOrders: workOrderService.getAll,
+    createWorkOrder: workOrderService.create,
+    updateWorkOrder: workOrderService.update,
+    deleteWorkOrder: workOrderService.delete,
+
+    // Purchase Orders
+    getPurchaseOrders: purchaseOrderService.getAll,
+    createPurchaseOrder: purchaseOrderService.create,
+    updatePurchaseOrder: purchaseOrderService.update,
+    deletePurchaseOrder: purchaseOrderService.delete,
+
+    // Development Samples
+    getSamples: sampleService.getAll,
+    createSample: sampleService.create,
+    updateSample: sampleService.update,
+    deleteSample: sampleService.delete,
+
+    // Parcels
+    getParcels: parcelService.getAll,
+    createParcel: parcelService.create,
+    updateParcel: parcelService.update,
+    deleteParcel: parcelService.delete,
+
+    // Calendar Events
+    getEvents: eventService.getAll,
+    createEvent: eventService.create,
+    updateEvent: eventService.update,
+    deleteEvent: eventService.delete,
 
     // Settings
     getSettings: settingsService.getSettings,

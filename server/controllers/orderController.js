@@ -38,16 +38,17 @@ export const createOrder = async (req, res) => {
         // Destructure nested fields that need special handling if any, 
         // but Prisma can handle nested writes if structured correctly.
         // For now, we take body as is, but ensure organizationId is present.
-        const orderData = { ...req.body, organizationId };
+        // Destructure to remove 'buyer' relation field if sent as string/object incorrectly
+        // We only want 'buyerId' to be passed to Prisma.
+        const { buyer, buyerId, ...restBody } = req.body;
 
-        // Handle nested create for SizeGroup, BomItem, etc if they are passed in req.body
-        // The frontend might need adjustment to send data in a structure Prisma expects for nested writes,
-        // or we handle them separately. For this migration, we'll try direct create assuming matching structure 
-        // or rely on simple fields first.
+        // Transform buyerId to Prisma 'connect' syntax
+        let orderData = { ...restBody, organizationId };
+        if (buyerId) {
+            orderData.buyer = { connect: { id: buyerId } };
+        }
 
-        // Note: Mongoose blindly accepted nested objects. Prisma is stricter.
-        // We might need to adjust this depending on exact payload structure.
-        // For MVP migration, we'll try to save top-level fields.
+        console.log('DEBUG: Creating Order with data:', JSON.stringify(orderData, null, 2));
 
         const createdOrder = await prisma.order.create({
             data: orderData

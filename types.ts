@@ -129,8 +129,8 @@ export interface SampleRow {
   labStatus?: 'Pending' | 'Testing' | 'Approved' | 'Rejected';
   isTestingRequired: boolean;
   isApproved?: boolean;
-  currentStage?: string; 
-  lastUpdated?: string; 
+  currentStage?: string;
+  lastUpdated?: string;
   commentsReceivedDate?: string;
   commentsSentBy?: string;
   emailAttachmentRef?: string;
@@ -198,7 +198,7 @@ export interface PackingInstruction {
   foldingInstructions?: string;
   packingNotes: string;
   packagingSpecSheetRef: string | null;
-  allocation: Record<string, number>; 
+  allocation: Record<string, number>;
   totalAllocated: number;
 }
 
@@ -225,17 +225,17 @@ export interface EmbellishmentRecord {
 }
 
 export interface PPMeetingSection {
-    startDate: string;
-    finishDate: string;
-    criticalArea: string;
-    preventiveMeasure: string;
-    concernedPerson: string;
+  startDate: string;
+  finishDate: string;
+  criticalArea: string;
+  preventiveMeasure: string;
+  concernedPerson: string;
 }
 
 export interface PPMeetingNotes {
-    inspectionDate: string;
-    poBreakdown: string;
-    sections: Record<string, PPMeetingSection>;
+  inspectionDate: string;
+  poBreakdown: string;
+  sections: Record<string, PPMeetingSection>;
 }
 
 export interface Order {
@@ -271,16 +271,16 @@ export interface Order {
   fabricStatus?: string;
   bomStatus?: 'Draft' | 'Released';
   planningNotes?: string;
-  skippedStages?: string[];
+  skippedStages?: string[] | string;
   sizeGroups?: SizeGroup[];
-  colors?: ColorRow[];
+  colors?: ColorRow[] | string;
   bom?: BOMItem[];
   samplingDetails?: SampleRow[];
-  criticalPath?: CriticalPath;
-  washing?: Record<string, WashingData>;
-  finishing?: FinishingData;
-  fitting?: FittingData[];
-  embellishments?: EmbellishmentRecord[];
+  criticalPath?: CriticalPath | string;
+  washing?: Record<string, WashingData> | string;
+  finishing?: FinishingData | string;
+  fitting?: FittingData[] | string;
+  embellishments?: EmbellishmentRecord[] | string;
   linkedJobId?: string;
   createdBy?: string;
   penaltyType?: 'Fixed' | 'PerPiece' | 'Percentage';
@@ -357,14 +357,14 @@ export interface PurchasingRequest {
   poNumber?: string;
   variantMap?: Record<string, number>;
   unitPrice?: number;
-  unitsPerPack?: number; 
+  unitsPerPack?: number;
   packingUnit?: string;
 }
 
 export interface WorkOrderRequest {
   id: string;
   jobId: string;
-  serviceName: string; 
+  serviceName: string;
   stage: 'Cutting' | 'Embellishment' | 'Stitching' | 'Washing' | 'Finishing';
   qty: number;
   unit: string;
@@ -462,8 +462,8 @@ export interface DevelopmentSample {
   isTestingRequired: boolean;
   season?: string;
   notes?: string;
-  currentStage?: string; 
-  lastUpdated?: string; 
+  currentStage?: string;
+  lastUpdated?: string;
   commentsReceivedDate?: string;
   commentsSentBy?: string;
   emailAttachmentRef?: string;
@@ -512,7 +512,7 @@ export interface POLineItem {
   description: string;
   itemDetail?: string;
   variants: POItemVariant[];
-  unitsPerPack?: number; 
+  unitsPerPack?: number;
   packingUnit?: string;
 }
 
@@ -532,7 +532,7 @@ export interface IssuedPurchaseOrder {
   dateIssued: string;
   currency: string;
   taxRate: number;
-  applyTax: boolean; 
+  applyTax: boolean;
   subtotal: number;
   taxAmount: number;
   totalAmount: number;
@@ -601,7 +601,7 @@ export interface Parcel {
   sentDate: string;
   receivedDate?: string;
   status: 'Sent' | 'Received';
-  samples: SampleRow[]; 
+  samples: SampleRow[];
   otherItems: ParcelOtherItem[];
   isTrackingPending?: boolean;
 }
