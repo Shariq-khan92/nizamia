@@ -71,11 +71,20 @@ import buyerRoutes from './routes/buyerRoutes.js';
 import financeRoutes from './routes/financeRoutes.js';
 import settingsRoutes from './routes/settingsRoutes.js';
 import designationRoutes from './routes/designationRoutes.js';
+import agencyRoutes from './routes/agencyRoutes.js';
+import masterBOMRoutes from './routes/masterBOMRoutes.js';
+import presetRoutes from './routes/presetRoutes.js';
 
 app.use('/api/auth', authRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/suppliers', supplierRoutes);
+app.use('/api/buyers', buyerRoutes);
 app.use('/api/designations', designationRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/finance', financeRoutes);
+app.use('/api/agencies', agencyRoutes);
+app.use('/api/bom-master', masterBOMRoutes);
+app.use('/api/bom-presets', presetRoutes);
 
 app.get('/health', async (req, res) => {
     try {

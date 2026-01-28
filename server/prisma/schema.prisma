@@ -276,3 +276,50 @@ model ProcessStep {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }
+
+model BuyingAgency {
+  id                String   @id @default(uuid())
+  organizationId    String
+  name              String
+  contactPerson     String?
+  phone             String?
+  address           String?
+  linkedBuyers      String?  // JSON array stored as string
+  activeOrdersCount Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model MasterBOMItem {
+  id             String   @id @default(uuid())
+  organizationId String
+  type           String   // 'Fabric' or 'Trim'
+  category       String?
+  supplier       String?
+  brand          String?
+  uom            String?
+  isNominated    Boolean  @default(false)
+  price          Float?
+  code           String?
+  construction   String?
+  content        String?
+  weight         Float?
+  width          String?
+  shade          String?
+  warpShrinkage  Float?
+  weftShrinkage  Float?
+  itemName       String?
+  details        String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model BOMPreset {
+  id             String   @id @default(uuid())
+  organizationId String
+  name           String
+  buyerName      String?
+  items          String?  @db.Text // JSON array of MasterBOMItem IDs stored as string
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}

@@ -79,6 +79,101 @@ export const orderService = {
     }
 };
 
+export const supplierService = {
+    getAll: async () => {
+        const response = await apiClient.get('/suppliers');
+        return response.data;
+    },
+    create: async (data: any) => {
+        const response = await apiClient.post('/suppliers', data);
+        return response.data;
+    },
+    update: async (id: string, data: any) => {
+        const response = await apiClient.put(`/suppliers/${id}`, data);
+        return response.data;
+    },
+    delete: async (id: string) => {
+        const response = await apiClient.delete(`/suppliers/${id}`);
+        return response.data;
+    }
+};
+
+export const buyerService = {
+    getAll: async () => {
+        const response = await apiClient.get('/buyers');
+        return response.data;
+    },
+    create: async (data: any) => {
+        const response = await apiClient.post('/buyers', data);
+        return response.data;
+    },
+    update: async (id: string, data: any) => {
+        const response = await apiClient.put(`/buyers/${id}`, data);
+        return response.data;
+    },
+    delete: async (id: string) => {
+        const response = await apiClient.delete(`/buyers/${id}`);
+        return response.data;
+    }
+};
+
+export const agencyService = {
+    getAll: async () => {
+        const response = await apiClient.get('/agencies');
+        return response.data;
+    },
+    create: async (data: any) => {
+        const response = await apiClient.post('/agencies', data);
+        return response.data;
+    },
+    update: async (id: string, data: any) => {
+        const response = await apiClient.put(`/agencies/${id}`, data);
+        return response.data;
+    },
+    delete: async (id: string) => {
+        const response = await apiClient.delete(`/agencies/${id}`);
+        return response.data;
+    }
+};
+
+export const masterBOMService = {
+    getAll: async () => {
+        const response = await apiClient.get('/bom-master');
+        return response.data;
+    },
+    create: async (data: any) => {
+        const response = await apiClient.post('/bom-master', data);
+        return response.data;
+    },
+    update: async (id: string, data: any) => {
+        const response = await apiClient.put(`/bom-master/${id}`, data);
+        return response.data;
+    },
+    delete: async (id: string) => {
+        const response = await apiClient.delete(`/bom-master/${id}`);
+        return response.data;
+    }
+};
+
+export const presetService = {
+    getAll: async () => {
+        const response = await apiClient.get('/bom-presets');
+        return response.data;
+    },
+    create: async (data: any) => {
+        const response = await apiClient.post('/bom-presets', data);
+        return response.data;
+    },
+    update: async (id: string, data: any) => {
+        const response = await apiClient.put(`/bom-presets/${id}`, data);
+        return response.data;
+    },
+    delete: async (id: string) => {
+        const response = await apiClient.delete(`/bom-presets/${id}`);
+        return response.data;
+    }
+};
+
 export const designationService = {
     getAll: async () => {
         const response = await apiClient.get('/designations');
@@ -164,6 +259,36 @@ export const api = {
     createDesignation: designationService.create,
     updateDesignation: designationService.update,
     deleteDesignation: designationService.delete,
+
+    // Suppliers
+    getSuppliers: supplierService.getAll,
+    createSupplier: supplierService.create,
+    updateSupplier: supplierService.update,
+    deleteSupplier: supplierService.delete,
+
+    // Buyers
+    getBuyers: buyerService.getAll,
+    createBuyer: buyerService.create,
+    updateBuyer: buyerService.update,
+    deleteBuyer: buyerService.delete,
+
+    // Buying Agencies
+    getAgencies: agencyService.getAll,
+    createAgency: agencyService.create,
+    updateAgency: agencyService.update,
+    deleteAgency: agencyService.delete,
+
+    // Master BOM Items
+    getMasterBOMItems: masterBOMService.getAll,
+    createMasterBOMItem: masterBOMService.create,
+    updateMasterBOMItem: masterBOMService.update,
+    deleteMasterBOMItem: masterBOMService.delete,
+
+    // BOM Presets
+    getBOMPresets: presetService.getAll,
+    createBOMPreset: presetService.create,
+    updateBOMPreset: presetService.update,
+    deleteBOMPreset: presetService.delete,
 
     // Settings
     getSettings: settingsService.getSettings,

@@ -31,7 +31,7 @@ import { CostingSheetGenerator } from './components/CostingSheetGenerator';
 import { EventsDashboard } from './components/EventsDashboard';
 import { TopBar } from './components/TopBar';
 import { Login } from './components/Login';
-import { Tab, Buyer, Supplier, Order, NewOrderState, SystemUser, JobBatch, ExportInvoice, MasterBOMItem, DevelopmentSample, CalendarEvent, CompanyDetails, IssuedPurchaseOrder, MonthlyTarget, FittingData, Parcel, BOMPreset, IssuedWorkOrder } from './types';
+import { Tab, Buyer, Supplier, Order, NewOrderState, SystemUser, JobBatch, ExportInvoice, MasterBOMItem, DevelopmentSample, CalendarEvent, CompanyDetails, IssuedPurchaseOrder, MonthlyTarget, FittingData, Parcel, BOMPreset, IssuedWorkOrder, BuyingAgency } from './types';
 import { api } from './services/api';
 
 const mapUserToSystemUser = (data: any): SystemUser => ({
@@ -48,6 +48,7 @@ export const App: React.FC = () => {
 
   const [buyers, setBuyers] = useState<Buyer[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [agencies, setAgencies] = useState<BuyingAgency[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
 
   // Fetch all data on load
@@ -55,7 +56,11 @@ export const App: React.FC = () => {
     if (isAuthenticated) {
       api.getOrders().then(setOrders).catch(console.error);
       api.getUsers().then((u: any[]) => setUsers(u.map(mapUserToSystemUser))).catch(console.error);
-      // Add API calls for buyers and suppliers when available
+      api.getSuppliers().then(setSuppliers).catch(console.error);
+      api.getBuyers().then(setBuyers).catch(console.error);
+      api.getAgencies().then(setAgencies).catch(console.error);
+      api.getMasterBOMItems().then(setMasterBOMItems).catch(console.error);
+      api.getBOMPresets().then(setBomPresets).catch(console.error);
     }
   }, [isAuthenticated]);
 
@@ -435,12 +440,88 @@ export const App: React.FC = () => {
       case Tab.PRODUCTION:
         return <ProductionFlowDashboard jobs={jobs} onUpdateJob={(j) => setJobs(prev => prev.map(job => job.id === j.id ? j : job))} />;
       case Tab.BUYERS:
-        return <BuyersDashboard buyers={buyers} onAddBuyer={(b) => setBuyers([...buyers, b])} onDeleteBuyer={(id) => setBuyers(buyers.filter(b => b.id !== id))} />;
+        return <BuyersDashboard buyers={buyers} onAddBuyer={async (b) => {
+          try {
+            const saved = await api.createBuyer(b);
+            setBuyers([...buyers, saved]);
+          } catch (err) {
+            console.error('Failed to create buyer:', err);
+            setBuyers([...buyers, b]); // Fallback to local state
+          }
+        }} onDeleteBuyer={async (id) => {
+          try {
+            await api.deleteBuyer(id);
+            setBuyers(buyers.filter(b => b.id !== id));
+          } catch (err) {
+            console.error('Failed to delete buyer:', err);
+            setBuyers(buyers.filter(b => b.id !== id)); // Still remove from local state
+          }
+        }} agencies={agencies} onAddAgency={async (a) => {
+          try {
+            const saved = await api.createAgency(a);
+            setAgencies([...agencies, saved]);
+          } catch (err) {
+            console.error('Failed to create agency:', err);
+            setAgencies([...agencies, a]); // Fallback to local state
+          }
+        }} onDeleteAgency={async (id) => {
+          try {
+            await api.deleteAgency(id);
+            setAgencies(agencies.filter(a => a.id !== id));
+          } catch (err) {
+            console.error('Failed to delete agency:', err);
+            setAgencies(agencies.filter(a => a.id !== id)); // Still remove from local state
+          }
+        }} />;
       case Tab.SUPPLIERS:
-        return <SuppliersDashboard suppliers={suppliers} onAddSupplier={(s) => setSuppliers([...suppliers, s])} onDeleteSupplier={(id) => setSuppliers(suppliers.filter(s => s.id !== id))} />;
+        return <SuppliersDashboard suppliers={suppliers} onAddSupplier={async (s) => {
+          try {
+            const saved = await api.createSupplier(s);
+            setSuppliers([...suppliers, saved]);
+          } catch (err) {
+            console.error('Failed to create supplier:', err);
+            setSuppliers([...suppliers, s]); // Fallback to local state
+          }
+        }} onDeleteSupplier={async (id) => {
+          try {
+            await api.deleteSupplier(id);
+            setSuppliers(suppliers.filter(s => s.id !== id));
+          } catch (err) {
+            console.error('Failed to delete supplier:', err);
+            setSuppliers(suppliers.filter(s => s.id !== id)); // Still remove from local state
+          }
+        }} />;
       case Tab.BOM:
-        // Fix: Use correct state setter setMasterBOMItems instead of undefined variable setMasterItems
-        return <BOMManagerDashboard masterItems={masterBOMItems} setMasterItems={setMasterBOMItems} bomPresets={bomPresets} setBomPresets={setBomPresets} buyers={buyers} suppliers={suppliers} />;
+        return <BOMManagerDashboard
+          masterItems={masterBOMItems}
+          setMasterItems={setMasterBOMItems}
+          onAddItem={async (item) => {
+            const saved = await api.createMasterBOMItem(item);
+            return saved;
+          }}
+          onUpdateItem={async (id, item) => {
+            const updated = await api.updateMasterBOMItem(id, item);
+            return updated;
+          }}
+          onDeleteItem={async (id) => {
+            await api.deleteMasterBOMItem(id);
+          }}
+          bomPresets={bomPresets}
+          setBomPresets={setBomPresets}
+          onAddPreset={async (preset) => {
+            const saved = await api.createBOMPreset(preset);
+            return saved;
+          }}
+          onUpdatePreset={async (id, preset) => {
+            const updated = await api.updateBOMPreset(id, preset);
+            return updated;
+          }}
+          onDeletePreset={async (id) => {
+            await api.deleteBOMPreset(id);
+          }}
+          buyers={buyers}
+          suppliers={suppliers}
+        />;
       case Tab.FINANCE:
         return <IntegratedFinanceDashboard currencyRates={currencyRates} exportInvoicesData={exportInvoices} />;
       case Tab.SHIPPING:
