@@ -36,6 +36,13 @@ const STATUS_LIGHTS = {
   Draft: { color: 'bg-gray-400', label: 'Draft' }
 };
 
+const getBuyerName = (buyer: any): string => {
+  if (!buyer) return '';
+  if (typeof buyer === 'string') return buyer;
+  if (typeof buyer === 'object' && 'name' in buyer) return buyer.name;
+  return String(buyer);
+};
+
 export const MainOrdersDashboard: React.FC<MainOrdersDashboardProps> = ({
   orders, jobs, buyers, companyDetails, onUpdateJobs, onUpdateOrder, onCreateOrder, onRowClick, onBulkImport,
   onCreateJob, onUpdateJob, onDeleteJob
@@ -123,9 +130,9 @@ export const MainOrdersDashboard: React.FC<MainOrdersDashboardProps> = ({
       const matchesSearch =
         (order.orderID || '').toLowerCase().includes(s) ||
         (order.styleName || '').toLowerCase().includes(s) ||
-        (order.buyer || '').toLowerCase().includes(s);
+        getBuyerName(order.buyer).toLowerCase().includes(s);
 
-      const matchesBuyer = buyerFilter === 'All' || order.buyer === buyerFilter;
+      const matchesBuyer = buyerFilter === 'All' || getBuyerName(order.buyer) === buyerFilter;
 
       // Determine effective status for filter
       const assignedJob = jobs.find(j => j.styles.some(s => s.id === order.id));
@@ -155,7 +162,7 @@ export const MainOrdersDashboard: React.FC<MainOrdersDashboardProps> = ({
   const totalUnitsTable = filteredOrders.reduce((acc, curr) => acc + (curr.quantity || 0), 0);
   const totalValueTable = filteredOrders.reduce((acc, curr) => acc + (curr.amount || (curr.price * curr.quantity)), 0);
 
-  const uniqueBuyers = Array.from(new Set(orders.map(o => o.buyer))).sort();
+  const uniqueBuyers = Array.from(new Set(orders.map(o => getBuyerName(o.buyer)))).sort();
 
   // --- Selection Handlers ---
   const toggleSelectOrder = (id: string, e: React.MouseEvent) => {
@@ -256,7 +263,7 @@ export const MainOrdersDashboard: React.FC<MainOrdersDashboardProps> = ({
               ${filteredOrders.map(o => `
                 <tr>
                   <td class="font-mono font-medium">${o.orderID || 'UNASSIGNED'}</td>
-                  <td>${isSensitiveDataVisible ? o.buyer : '••••••••'}</td>
+                  <td>${isSensitiveDataVisible ? getBuyerName(o.buyer) : '••••••••'}</td>
                    <td class="font-mono">
                     <div class="font-bold text-blue-700">${o.poNumber || '-'}</div>
                     <div class="text-[10px] text-gray-400">ID: ${o.id}</div>
@@ -611,8 +618,8 @@ export const MainOrdersDashboard: React.FC<MainOrdersDashboardProps> = ({
                                 </div>
                               </div>
                             </td>
-                            <td className="px-3 py-6 font-bold text-gray-900 uppercase text-sm tracking-tight truncate" title={order.buyer}>
-                              {isSensitiveDataVisible ? order.buyer : '••••••••'}
+                            <td className="px-3 py-6 font-bold text-gray-900 uppercase text-sm tracking-tight truncate" title={getBuyerName(order.buyer)}>
+                              {isSensitiveDataVisible ? getBuyerName(order.buyer) : '••••••••'}
                             </td>
                             <td className="px-3 py-6">
                               <div className="flex flex-col leading-tight overflow-hidden">
