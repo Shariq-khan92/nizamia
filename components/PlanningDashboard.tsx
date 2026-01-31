@@ -50,6 +50,7 @@ import {
 import { JobBatch, Tab, Parcel, DevelopmentSample, SampleRow, ParcelOtherItem, Buyer, CompanyDetails, BOMItem, Order, PPMeetingNotes, PPMeetingSection, WorkOrderRequest, IssuedWorkOrder } from '../types';
 import { formatAppDate, LOGO_URL } from '../constants';
 import { SampleSummaryView } from './SampleSummaryView';
+import { getBuyerName } from '../services/dataUtils';
 
 // --- Sub-Components and Helpers ---
 
@@ -97,12 +98,6 @@ const PPM_OPERATIONS = [
     'Testing'
 ] as const;
 
-const getBuyerName = (buyer: any): string => {
-    if (!buyer) return '';
-    if (typeof buyer === 'string') return buyer;
-    if (typeof buyer === 'object' && 'name' in buyer) return buyer.name;
-    return String(buyer);
-};
 
 const TrafficLight = ({ status }: { status: { color: string, label: string } }) => {
     const colors: Record<string, string> = {

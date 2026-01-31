@@ -33,6 +33,7 @@ import { TopBar } from './components/TopBar';
 import { Login } from './components/Login';
 import { Tab, Buyer, Supplier, Order, NewOrderState, SystemUser, JobBatch, ExportInvoice, MasterBOMItem, DevelopmentSample, CalendarEvent, CompanyDetails, IssuedPurchaseOrder, MonthlyTarget, FittingData, Parcel, BOMPreset, IssuedWorkOrder, BuyingAgency } from './types';
 import { api } from './services/api';
+import { mapOrderToNewOrderState } from './services/dataUtils';
 
 const mapUserToSystemUser = (data: any): SystemUser => ({
   id: data?._id || data?.id || 'local-user',
@@ -183,88 +184,18 @@ export const App: React.FC = () => {
 
   const [activeJobForConsole, setActiveJobForConsole] = useState<JobBatch | null>(null);
 
-  const mapOrderToDeepState = (order: Order): NewOrderState => {
-    let fittingData: FittingData[] = [];
-    if (typeof order.fitting === 'string') {
-      try {
-        fittingData = JSON.parse(order.fitting);
-      } catch {
-        fittingData = [];
-      }
-    } else if (Array.isArray(order.fitting)) {
-      fittingData = order.fitting;
-    } else if (order.fitting) {
-      fittingData = [{ ...(order.fitting as any), id: 'legacy-fit' }];
-    }
-
-    return {
-      generalInfo: {
-        formData: {
-          jobNumber: order.orderID || '',
-          buyerName: order.buyer || '',
-          merchandiserName: order.merchandiserName || '',
-          factoryRef: order.factoryRef || '',
-          styleNumber: order.styleNo || '',
-          productID: order.id || '',
-          poNumber: order.poNumber || '',
-          poDate: order.poDate || '',
-          shipDate: order.deliveryDate || '',
-          plannedDate: order.plannedDate || '',
-          shipMode: order.shipMode || 'Sea',
-          description: order.styleDescription || '',
-          incoterms: order.incoterms || '',
-        },
-        styleImage: order.imageUrl || null,
-        colors: typeof order.colors === 'string' ? JSON.parse(order.colors) : (order.colors || []),
-        sizeGroups: (order.sizeGroups || []).map(g => ({
-          ...g,
-          sizes: typeof g.sizes === 'string' ? JSON.parse(g.sizes) : (g.sizes || []),
-          colors: typeof g.colors === 'string' ? JSON.parse(g.colors) : (g.colors || []),
-          breakdown: typeof g.breakdown === 'string' ? JSON.parse(g.breakdown) : (g.breakdown || {})
-        }))
-      },
-      fitting: fittingData,
-      sampling: order.samplingDetails || [],
-      embellishments: typeof order.embellishments === 'string' ? JSON.parse(order.embellishments) : (order.embellishments || []),
-      washing: typeof order.washing === 'string' ? JSON.parse(order.washing) : (order.washing || {}),
-      finishing: typeof order.finishing === 'string' ? JSON.parse(order.finishing) : (order.finishing || {
-        finalInspectionStatus: 'Pending',
-        packingList: []
-      }),
-      criticalPath: typeof order.criticalPath === 'string' ? JSON.parse(order.criticalPath) : (order.criticalPath || {
-        capacity: {
-          totalOrderQty: order.quantity,
-          fabricLeadTime: 0,
-          trimsLeadTime: 0,
-          cuttingOutput: 0,
-          sewingLines: 0,
-          sewingOutputPerLine: 0,
-          finishingOutput: 0,
-        },
-        schedule: []
-      }),
-      bom: (order.bom || []).map(item => ({
-        ...item,
-        usageData: typeof item.usageData === 'string' ? JSON.parse(item.usageData) : (item.usageData || { generic: 0 })
-      })),
-      bomStatus: order.bomStatus || 'Draft',
-      planningNotes: order.planningNotes || '',
-      skippedStages: typeof order.skippedStages === 'string' ? JSON.parse(order.skippedStages) : (order.skippedStages || [])
-    };
-  };
-
   const handleCreateOrder = () => {
     setEditingOrderData(null);
     setIsOrderModalOpen(true);
   };
 
   const handleEditOrder = (order: Order) => {
-    setEditingOrderData(mapOrderToDeepState(order));
+    setEditingOrderData(mapOrderToNewOrderState(order));
     setIsOrderModalOpen(true);
   };
 
   const handleViewSummary = (order: Order) => {
-    setSummaryData(mapOrderToDeepState(order));
+    setSummaryData(mapOrderToNewOrderState(order));
   };
 
   const handleUpdateOrder = (updatedOrder: Order) => {

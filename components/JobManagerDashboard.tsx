@@ -18,6 +18,7 @@ import { TestingPlanGenerator } from './TestingPlanGenerator';
 import { ProcessPlanGenerator } from './ProcessPlanGenerator';
 import { SalesContractModal } from './SalesContractModal';
 import { jobService } from '../services/api';
+import { deepParseOrder, getBuyerName } from '../services/dataUtils';
 
 interface JobManagerDashboardProps {
     availableOrders: Order[];
@@ -62,12 +63,6 @@ const PPM_OPERATIONS = [
     'Testing'
 ] as const;
 
-const getBuyerName = (buyer: any): string => {
-    if (!buyer) return '';
-    if (typeof buyer === 'string') return buyer;
-    if (typeof buyer === 'object' && 'name' in buyer) return buyer.name;
-    return String(buyer);
-};
 
 export const JobManagerDashboard: React.FC<JobManagerDashboardProps> = ({
     availableOrders, jobs, availableBuyers, companyDetails, onUpdateJobs, onBack,
@@ -111,10 +106,29 @@ export const JobManagerDashboard: React.FC<JobManagerDashboardProps> = ({
 
     const [successToast, setSuccessToast] = useState<string | null>(null);
 
+    // SYSTEMIC FIX: Ensure all styles in jobs and available orders are deeply parsed
+    // This handles JSON strings in snapshots (e.g., sizeGroups.sizes)
+    const processedJobs = useMemo(() => {
+        return jobs.map(j => ({
+            ...j,
+            styles: (j.styles || []).map(deepParseOrder)
+        }));
+    }, [jobs]);
+
+    const processedAvailableOrders = useMemo(() => {
+        return availableOrders.map(deepParseOrder);
+    }, [availableOrders]);
+
+    // Work with processed data internally
+    const filteredJobs = processedJobs.filter(j =>
+        j.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        j.batchName.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
     // Logic for Unassigned Orders Alert Box
     const unassignedOrdersCount = useMemo(() => {
-        return availableOrders.filter(o => o.status !== 'Draft' && !jobs.some(j => j.styles.some(s => s.id === o.id))).length;
-    }, [availableOrders, jobs]);
+        return processedAvailableOrders.filter(o => o.status !== 'Draft' && !processedJobs.some(j => j.styles.some(s => s.id === o.id))).length;
+    }, [processedAvailableOrders, processedJobs]);
 
     // --- Handlers ---
 
@@ -131,7 +145,7 @@ export const JobManagerDashboard: React.FC<JobManagerDashboardProps> = ({
             return;
         }
 
-        const selectedStyles = availableOrders.filter(o => selectedOrderIds.has(o.id));
+        const selectedStyles = processedAvailableOrders.filter(o => selectedOrderIds.has(o.id));
         const totalQty = selectedStyles.reduce((acc, o) => acc + o.quantity, 0);
 
         const newJob: JobBatch = {
@@ -344,7 +358,7 @@ export const JobManagerDashboard: React.FC<JobManagerDashboardProps> = ({
     };
 
     const handleOpenPPLog = (styleId: string) => {
-        const jobWithStyle = jobs.find(j => j.styles.some(s => s.id === styleId));
+        const jobWithStyle = processedJobs.find(j => j.styles.some(s => s.id === styleId));
         if (!jobWithStyle) return;
         const style = jobWithStyle.styles.find(s => s.id === styleId)!;
         setPPEditingOrder(style);
@@ -381,7 +395,7 @@ export const JobManagerDashboard: React.FC<JobManagerDashboardProps> = ({
 
     const handleSavePPNotes = async () => {
         if (!ppEditingOrder) return;
-        const targetJob = jobs.find(j => j.styles.some(s => s.id === ppEditingOrder.id));
+        const targetJob = processedJobs.find(j => j.styles.some(s => s.id === ppEditingOrder.id));
         if (!targetJob) return;
 
         const updatedStyles = targetJob.styles.map(style => {
@@ -517,10 +531,6 @@ export const JobManagerDashboard: React.FC<JobManagerDashboardProps> = ({
         printWindow.document.close();
     };
 
-    const filteredJobs = jobs.filter(j =>
-        j.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        j.batchName.toLowerCase().includes(searchTerm.toLowerCase())
-    );
 
     const issuedPlansCount = planningJob ? Object.values(planningJob.plans).filter(v => v === 'Approved').length : 0;
 

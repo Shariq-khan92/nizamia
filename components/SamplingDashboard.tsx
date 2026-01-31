@@ -10,6 +10,7 @@ import {
 import { JobBatch, DevelopmentSample, Parcel, SampleRow, Buyer, CompanyDetails, BOMItem, EmbellishmentRecord } from '../types';
 import { formatAppDate } from '../constants';
 import { SampleSummaryView } from './SampleSummaryView';
+import { getBuyerName } from '../services/dataUtils';
 
 // --- Types & Interfaces ---
 
@@ -497,7 +498,7 @@ export const SamplingDashboard: React.FC<SamplingDashboardProps> = ({
                 style.samplingDetails?.forEach(s => {
                     const dates = findParcelDates(s.samNumber);
                     list.push({
-                        id: s.id, samId: s.samNumber, source: 'Job', parentRef: job.id, buyer: style.buyer, style: style.styleNo,
+                        id: s.id, samId: s.samNumber, source: 'Job', parentRef: job.id, buyer: getBuyerName(style.buyer), style: style.styleNo,
                         type: s.type, shade: s.shade, qty: s.quantity, fabric: s.fabric, deadline: s.deadline || 'TBD',
                         status: s.status, currentStage: s.currentStage || 'Not Started', lastUpdated: s.lastUpdated,
                         originalData: { ...s, parentJob: job, parentStyleId: style.id, factoryRef: style.factoryRef, parentStyle: style },
@@ -509,7 +510,7 @@ export const SamplingDashboard: React.FC<SamplingDashboardProps> = ({
         developmentSamples.forEach(s => {
             const dates = findParcelDates(s.samNumber);
             list.push({
-                id: s.id, samId: s.samNumber, source: 'Development', parentRef: 'R&D', buyer: s.buyer, style: s.styleNo,
+                id: s.id, samId: s.samNumber, source: 'Development', parentRef: 'R&D', buyer: getBuyerName(s.buyer), style: s.styleNo,
                 type: s.type, shade: s.shade, qty: s.quantity, fabric: s.fabric, deadline: s.deadline || 'TBD',
                 status: s.status, currentStage: s.currentStage || 'Not Started', lastUpdated: s.lastUpdated, originalData: s,
                 sentOn: dates.sentOn, deliveredOn: dates.deliveredOn

@@ -3,10 +3,11 @@ import {
     ArrowLeft, Shirt, Scissors, Droplets,
     CheckCircle2, FlaskConical, Hash, Ruler, Tag,
     Layers, Package, Info, Calendar, Printer, Clock, User,
-    FileText
+    FileText, Image as ImageIcon
 } from 'lucide-react';
 import { formatAppDate } from '../constants';
 import { BOMItem, Order, FittingData } from '../types';
+import { getBuyerName } from '../services/dataUtils';
 
 interface SampleSummaryViewProps {
     sample: any; // UnifiedSample
@@ -30,8 +31,8 @@ export const SampleSummaryView: React.FC<SampleSummaryViewProps> = ({ sample, on
 
     // Find applicable fitting spec
     const applicableFit = useMemo(() => {
-        if (!parentStyle?.fitting) return 'Standard';
-        const fit = parentStyle.fitting.find(f => f.sizeRange === 'Generic' || f.sizeRange?.includes(sample.baseSize));
+        if (!parentStyle?.fitting || typeof parentStyle.fitting === 'string') return 'Standard';
+        const fit = (parentStyle.fitting as FittingData[]).find(f => f.sizeRange === 'Generic' || f.sizeRange?.includes(sample.baseSize));
         return fit ? fit.fitName : 'Standard';
     }, [parentStyle, sample.baseSize]);
 
@@ -107,7 +108,7 @@ export const SampleSummaryView: React.FC<SampleSummaryViewProps> = ({ sample, on
                             <div className="grid grid-cols-2 gap-y-6 gap-x-8">
                                 <div>
                                     <label className="text-[9px] font-black text-gray-400 uppercase tracking-wider block mb-1">Buyer Account</label>
-                                    <div className="text-sm font-black text-gray-900 uppercase">{sample.buyer}</div>
+                                    <div className="text-sm font-black text-gray-900 uppercase">{getBuyerName(sample.buyer)}</div>
                                 </div>
                                 <div>
                                     <label className="text-[9px] font-black text-gray-400 uppercase tracking-wider block mb-1">Target Date</label>
