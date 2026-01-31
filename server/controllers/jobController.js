@@ -107,3 +107,58 @@ export const deleteJob = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
+// Refresh Job Data (Re-sync with latest Orders)
+export const refreshJob = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const job = await prisma.jobBatch.findUnique({ where: { id } });
+
+        if (!job) return res.status(404).json({ message: 'Job not found' });
+
+        const currentStyles = parseJSON(job.styles) || [];
+        // Extract original Order IDs or Style IDs. 
+        // Assuming job.styles contains full order objects, we need to find their original IDs.
+        // If they are Order objects, they have 'id'.
+        const orderIds = currentStyles.map(s => s.id).filter(Boolean);
+
+        if (orderIds.length === 0) {
+            return res.json(job); // Nothing to refresh
+        }
+
+        // Fetch fresh orders
+        const freshOrders = await prisma.order.findMany({
+            where: { id: { in: orderIds } },
+            include: {
+                buyer: true,
+                bom: true,
+                samplingDetails: true,
+                sizeGroups: true
+            }
+        });
+
+        // Update the job with fresh styles
+        const updatedJob = await prisma.jobBatch.update({
+            where: { id },
+            data: {
+                styles: JSON.stringify(freshOrders)
+            }
+        });
+
+        res.json({
+            ...updatedJob,
+            styles: freshOrders, // Return fresh already parsed
+            plans: parseJSON(updatedJob.plans) || {},
+            purchasingRequests: parseJSON(updatedJob.purchasingRequests) || [],
+            workOrderRequests: parseJSON(updatedJob.workOrderRequests) || [],
+            cuttingPlanDetails: parseJSON(updatedJob.cuttingPlanDetails) || [],
+            dailyLogs: parseJSON(updatedJob.dailyLogs) || [],
+            productionProgress: parseJSON(updatedJob.productionProgress) || {},
+            stageSchedules: parseJSON(updatedJob.stageSchedules) || {}
+        });
+
+    } catch (error) {
+        console.error("Refresh Job Error:", error);
+        res.status(500).json({ message: error.message });
+    }
+};

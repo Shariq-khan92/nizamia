@@ -326,7 +326,27 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
               setNewOrderData(prev => ({ ...prev, generalInfo: { ...prev.generalInfo, formData: nextForm } }));
             }}
             sizeGroups={newOrderData.generalInfo.sizeGroups}
-            onSizeGroupsChange={(groups) => setNewOrderData(prev => ({ ...prev, generalInfo: { ...prev.generalInfo, sizeGroups: groups } }))}
+            onSizeGroupsChange={(groups) => setNewOrderData(prev => {
+              // Sync colors from size groups to top-level colors
+              const allColorsMap = new Map();
+              groups.forEach(g => {
+                g.colors.forEach(c => {
+                  if (!allColorsMap.has(c.name)) {
+                    allColorsMap.set(c.name, c);
+                  }
+                });
+              });
+              const uniqueColors = Array.from(allColorsMap.values());
+
+              return {
+                ...prev,
+                generalInfo: {
+                  ...prev.generalInfo,
+                  sizeGroups: groups,
+                  colors: uniqueColors
+                }
+              };
+            })}
             availableBuyers={availableBuyers}
             styleImage={newOrderData.generalInfo.styleImage}
             setStyleImage={(img) => setNewOrderData(prev => ({ ...prev, generalInfo: { ...prev.generalInfo, styleImage: img } }))}

@@ -390,7 +390,10 @@ export const OrderSummaryView: React.FC<OrderSummaryViewProps> = ({ orderData, o
                             <div className="p-5 grid grid-cols-2 sm:grid-cols-3 gap-4">
                                 <div>
                                     <label className="text-xs text-gray-500 block">Buyer</label>
-                                    <span className="text-sm font-medium text-gray-900">{formData.buyerName}</span>
+                                    <span className="text-sm font-medium text-gray-900">
+                                        {/* @ts-ignore */}
+                                        {typeof formData.buyerName === 'object' && formData.buyerName ? formData.buyerName.name : formData.buyerName}
+                                    </span>
                                 </div>
                                 <div>
                                     <label className="text-xs text-gray-500 block">Merchandiser</label>

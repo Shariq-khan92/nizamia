@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import { api } from '../services/api';
 import {
     CheckCircle2,
     CheckSquare,
@@ -78,7 +79,7 @@ interface UnifiedTrackable {
     commentsSentBy?: string;
     emailAttachmentRef?: string;
     isLabEntry?: boolean;
-    parcelNo?: string;
+    parcelNumber?: string;
     courier?: string;
     trackingNo?: string;
     feedbackText?: string;
@@ -95,6 +96,13 @@ const PPM_OPERATIONS = [
     'Packing / Finishing',
     'Testing'
 ] as const;
+
+const getBuyerName = (buyer: any): string => {
+    if (!buyer) return '';
+    if (typeof buyer === 'string') return buyer;
+    if (typeof buyer === 'object' && 'name' in buyer) return buyer.name;
+    return String(buyer);
+};
 
 const TrafficLight = ({ status }: { status: { color: string, label: string } }) => {
     const colors: Record<string, string> = {
@@ -211,7 +219,7 @@ export const PlanningDashboard: React.FC<PlanningDashboardProps> = ({
         const list: UnifiedTrackable[] = [];
         const findParcelDetails = (ref: string) => {
             const p = parcels.find(p => p.samples.some(s => s.samNumber === ref) || p.otherItems.some(o => o.name === ref));
-            return { sentOn: p?.sentDate, deliveredOn: p?.receivedDate, parcelNo: p?.parcelNo, courier: p?.courier, trackingNo: p?.trackingNo, parcelStatus: p?.status };
+            return { sentOn: p?.sentDate, deliveredOn: p?.receivedDate, parcelNumber: p?.parcelNumber, courier: p?.courier, trackingNo: p?.trackingNo, parcelStatus: p?.status };
         };
 
         jobs.forEach(job => {
@@ -219,7 +227,7 @@ export const PlanningDashboard: React.FC<PlanningDashboardProps> = ({
                 style.samplingDetails?.forEach(s => {
                     const pInfo = findParcelDetails(s.samNumber);
                     list.push({
-                        id: `sam-${s.id}`, refId: s.samNumber, source: 'Job', parentRef: job.id, buyer: style.buyer, style: style.styleNo, factoryRef: style.factoryRef || '',
+                        id: `sam-${s.id}`, refId: s.samNumber, source: 'Job', parentRef: job.id, buyer: getBuyerName(style.buyer), style: style.styleNo, factoryRef: style.factoryRef || '',
                         type: s.type, detail: `${s.baseSize} | ${s.quantity} pcs`, category: 'Sample',
                         status: s.status, labStatus: s.labStatus, currentStage: s.currentStage || 'Not Started', lastUpdated: s.lastUpdated,
                         originalData: { ...s, parentJob: job, parentStyleId: style.id, factoryRef: style.factoryRef },
@@ -229,7 +237,7 @@ export const PlanningDashboard: React.FC<PlanningDashboardProps> = ({
                 style.bom?.forEach(item => {
                     const pInfo = findParcelDetails(item.supplierRef || item.componentName);
                     list.push({
-                        id: `bom-${item.id}`, refId: item.supplierRef || '-', source: 'Job', parentRef: job.id, buyer: style.buyer, style: style.styleNo, factoryRef: style.factoryRef || '',
+                        id: `bom-${item.id}`, refId: item.supplierRef || '-', source: 'Job', parentRef: job.id, buyer: getBuyerName(style.buyer), style: style.styleNo, factoryRef: style.factoryRef || '',
                         type: item.componentName, detail: item.itemDetail || '-', category: 'Material',
                         status: item.sourcingStatus, labStatus: item.labStatus, currentStage: item.labStatus === 'Testing' ? 'Testing' : (item.sourcingStatus === 'Submitted' ? 'Submitted' : 'Received'),
                         originalData: { ...item, parentJob: job, parentStyleId: style.id },
@@ -242,7 +250,7 @@ export const PlanningDashboard: React.FC<PlanningDashboardProps> = ({
         developmentSamples.forEach(s => {
             const pInfo = findParcelDetails(s.samNumber);
             list.push({
-                id: `sam-${s.id}`, refId: s.samNumber, source: 'Development', parentRef: 'R&D', buyer: s.buyer, style: s.styleNo, factoryRef: s.styleNo,
+                id: `sam-${s.id}`, refId: s.samNumber, source: 'Development', parentRef: 'R&D', buyer: getBuyerName(s.buyer), style: s.styleNo, factoryRef: s.styleNo,
                 type: s.type, detail: `${s.baseSize} | ${s.quantity} pcs`, category: 'Sample',
                 status: s.status, labStatus: s.labStatus, currentStage: s.currentStage || 'Not Started', lastUpdated: s.lastUpdated, originalData: s,
                 ...pInfo, feedbackText: s.feedbackText, commentsReceivedDate: s.commentsReceivedDate, commentsSentBy: s.commentsSentBy
@@ -262,7 +270,7 @@ export const PlanningDashboard: React.FC<PlanningDashboardProps> = ({
                     style.bom?.filter(item => item.processGroup === 'Fabric').forEach(item => {
                         if (item.isApproved || item.isTestingRequired) {
                             const unified = unifiedData.find(u => u.id === `bom-${item.id}`);
-                            list.push({ id: `bom-${item.id}`, jobId: job.id, factoryRef: style.factoryRef || '-', itemRef: item.supplierRef || '-', itemType: 'Fabric', itemDetail: item.componentName, approvalRequired: !!item.isApproved, labRequired: !!item.isTestingRequired, deadline: style.deliveryDate || '-', status: item.sourcingStatus || 'Pending', labStatus: item.labStatus || 'Pending', buyer: style.buyer, originalId: item.id, parentJobId: job.id, parentStyleId: style.id, sentOn: unified?.sentOn, deliveredOn: unified?.deliveredOn });
+                            list.push({ id: `bom-${item.id}`, jobId: job.id, factoryRef: style.factoryRef || '-', itemRef: item.supplierRef || '-', itemType: 'Fabric', itemDetail: item.componentName, approvalRequired: !!item.isApproved, labRequired: !!item.isTestingRequired, deadline: style.deliveryDate || '-', status: item.sourcingStatus || 'Pending', labStatus: item.labStatus || 'Pending', buyer: getBuyerName(style.buyer), originalId: item.id, parentJobId: job.id, parentStyleId: style.id, sentOn: unified?.sentOn, deliveredOn: unified?.deliveredOn });
                         }
                     });
                 }
@@ -270,7 +278,7 @@ export const PlanningDashboard: React.FC<PlanningDashboardProps> = ({
                     style.samplingDetails?.forEach(s => {
                         if (s.isApproved || s.isTestingRequired) {
                             const unified = unifiedData.find(u => u.id === `sam-${s.id}`);
-                            list.push({ id: `sam-${s.id}`, jobId: job.id, factoryRef: style.factoryRef || '-', itemRef: s.samNumber, itemType: 'Sampling', itemDetail: s.type, approvalRequired: !!s.isApproved, labRequired: !!s.isTestingRequired, deadline: s.deadline || '-', status: s.status, labStatus: s.labStatus || 'Pending', currentStage: s.currentStage || 'Not Started', buyer: style.buyer, originalId: s.id, parentJobId: job.id, parentStyleId: style.id, sentOn: unified?.sentOn, deliveredOn: unified?.deliveredOn });
+                            list.push({ id: `sam-${s.id}`, jobId: job.id, factoryRef: style.factoryRef || '-', itemRef: s.samNumber, itemType: 'Sampling', itemDetail: s.type, approvalRequired: !!s.isApproved, labRequired: !!s.isTestingRequired, deadline: s.deadline || '-', status: s.status, labStatus: s.labStatus || 'Pending', currentStage: s.currentStage || 'Not Started', buyer: getBuyerName(style.buyer), originalId: s.id, parentJobId: job.id, parentStyleId: style.id, sentOn: unified?.sentOn, deliveredOn: unified?.deliveredOn });
                         }
                     });
                 }
@@ -293,7 +301,7 @@ export const PlanningDashboard: React.FC<PlanningDashboardProps> = ({
                 status: s.status,
                 labStatus: s.labStatus || 'Pending',
                 currentStage: s.currentStage || 'Not Started',
-                buyer: s.buyer,
+                buyer: getBuyerName(s.buyer),
                 originalId: s.id,
                 parentJobId: 'R&D',
                 parentStyleId: s.id,
@@ -370,7 +378,7 @@ export const PlanningDashboard: React.FC<PlanningDashboardProps> = ({
         jobs.forEach(job => {
             job.styles.forEach(style => {
                 list.push({
-                    jobId: job.id, buyer: style.buyer, poNumber: style.poNumber || '-', id: style.id, factoryRef: style.factoryRef || '-',
+                    jobId: job.id, buyer: getBuyerName(style.buyer), poNumber: style.poNumber || '-', id: style.id, factoryRef: style.factoryRef || '-',
                     orderDate: style.poDate || '-', shipDate: style.deliveryDate || '-', plannedDate: style.plannedDate || style.deliveryDate || '-',
                     quantity: style.quantity, ppMeetingDate: style.ppMeetingDate || '-', status: style.ppMeetingStatus || 'Pending', original: style
                 });
@@ -383,19 +391,27 @@ export const PlanningDashboard: React.FC<PlanningDashboardProps> = ({
     }, [jobs, searchTerm]);
 
     // Handlers
-    const handleIssueWorkOrder = () => {
+
+    const handleIssueWorkOrder = async () => {
         if (selectedWorkOrderDemandIds.size === 0 || !woVendor) return;
         const items = workOrderDemandItems.filter(i => selectedWorkOrderDemandIds.has(i.id));
         const woNumber = `WO-${items[0].stage.substring(0, 3).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
-        const newWO: IssuedWorkOrder = {
-            id: `WO-${Date.now()}`, woNumber, vendorName: woVendor, stage: items[0].stage, dateIssued: new Date().toISOString().split('T')[0],
+        const newWO = {
+            woNumber, vendorName: woVendor, stage: items[0].stage, dateIssued: new Date().toISOString().split('T')[0],
             targetDate: woTargetDate, status: 'Issued', items: items, totalQty: items.reduce((a, b) => a + b.qty, 0), notes: woNotes
         };
-        onUpdateWorkOrders([newWO, ...issuedWorkOrders]);
-        setIsWorkOrderModalOpen(false);
-        setSelectedWorkOrderDemandIds(new Set());
-        setSuccessToast(`Work Order ${woNumber} issued.`);
+
+        try {
+            // @ts-ignore
+            const created = await api.createWorkOrder(newWO);
+            onUpdateWorkOrders([created, ...issuedWorkOrders]);
+            setIsWorkOrderModalOpen(false);
+            setSelectedWorkOrderDemandIds(new Set());
+            setSuccessToast(`Work Order ${woNumber} issued.`);
+        } catch (error) {
+            console.error("Failed to create work order", error);
+        }
     };
 
     const handleOpenPPLog = (styleId: string) => {
@@ -748,7 +764,7 @@ export const PlanningDashboard: React.FC<PlanningDashboardProps> = ({
 
         const newParcel: Parcel = {
             id: `PRC-${Date.now()}`,
-            parcelNo: `EXP-${Math.floor(1000 + Math.random() * 9000)}`,
+            parcelNumber: `EXP-${Math.floor(1000 + Math.random() * 9000)}`,
             buyer: buyerObj?.name || 'Unknown',
             recipientName: parcelDetails.recipientName,
             recipientPhone: parcelDetails.phone,
@@ -809,7 +825,7 @@ export const PlanningDashboard: React.FC<PlanningDashboardProps> = ({
 
         setIsParcelModalOpen(false);
         setSelectedApprovalIds(new Set());
-        setSuccessToast(`Parcel ${newParcel.parcelNo} created successfully.`);
+        setSuccessToast(`Parcel ${newParcel.parcelNumber} created successfully.`);
     };
 
     const handleUpdateTracking = async () => {
@@ -856,7 +872,7 @@ export const PlanningDashboard: React.FC<PlanningDashboardProps> = ({
         printWindow.document.write(`
       <html>
         <head>
-          <title>Shipment Advice - ${parcel.parcelNo}</title>
+          <title>Shipment Advice - ${parcel.parcelNumber}</title>
           <script src="https://cdn.tailwindcss.com"></script>
           <style>
             @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800;900&display=swap');
@@ -878,14 +894,14 @@ export const PlanningDashboard: React.FC<PlanningDashboardProps> = ({
             </div>
             <div class="text-right">
               <div class="text-xs font-black text-gray-400 uppercase">Advice Ref</div>
-              <div class="text-xl font-black font-mono">${parcel.parcelNo}</div>
+              <div class="text-xl font-black font-mono">${parcel.parcelNumber}</div>
             </div>
           </div>
 
           <div class="grid grid-cols-2 gap-12 mb-8">
             <div>
               <h3 class="text-[10px] font-black uppercase text-gray-400 mb-2">Consignee (Recipient)</h3>
-              <p class="font-black text-xl uppercase">${parcel.buyer}</p>
+              <p class="font-black text-xl uppercase">${getBuyerName(parcel.buyer)}</p>
               <p class="text-sm font-bold text-blue-700 mt-1">ATTN: ${parcel.recipientName}</p>
               <p class="text-xs text-gray-600 mt-3 leading-relaxed font-medium">${parcel.address}</p>
               ${parcel.recipientPhone ? `<p class="text-xs text-gray-400 mt-2">TEL: ${parcel.recipientPhone}</p>` : ''}
@@ -968,7 +984,7 @@ export const PlanningDashboard: React.FC<PlanningDashboardProps> = ({
         printWindow.document.write(`
       <html>
         <head>
-          <title>Non-Commercial Invoice - ${parcel.parcelNo}</title>
+          <title>Non-Commercial Invoice - ${parcel.parcelNumber}</title>
           <script src="https://cdn.tailwindcss.com"></script>
           <style>
             @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800;900&display=swap');
@@ -990,7 +1006,7 @@ export const PlanningDashboard: React.FC<PlanningDashboardProps> = ({
             </div>
             <div class="text-right">
               <div class="text-[9px] font-black text-gray-400 uppercase">Invoice Ref</div>
-              <div class="text-lg font-black font-mono">${parcel.parcelNo}</div>
+              <div class="text-lg font-black font-mono">${parcel.parcelNumber}</div>
             </div>
           </div>
 
@@ -1002,7 +1018,7 @@ export const PlanningDashboard: React.FC<PlanningDashboardProps> = ({
             </div>
             <div>
               <h3 class="text-[9px] font-black uppercase text-gray-400 mb-2">Consignee / Importer</h3>
-              <p class="font-bold text-sm uppercase">${parcel.buyer}</p>
+              <p class="font-bold text-sm uppercase">${getBuyerName(parcel.buyer)}</p>
               <p class="text-[10px] text-gray-700 mt-1">ATTN: ${parcel.recipientName}</p>
               <p class="text-[10px] text-gray-600 mt-2 leading-relaxed">${parcel.address}</p>
             </div>
@@ -1343,8 +1359,8 @@ export const PlanningDashboard: React.FC<PlanningDashboardProps> = ({
                                                             className="rounded border-gray-300 text-black pointer-events-none"
                                                         />
                                                     </td>
-                                                    <td className="px-6 py-4 font-mono font-bold text-xs text-blue-700">{p.parcelNo}</td>
-                                                    <td className="px-6 py-4 font-bold text-gray-900 uppercase text-xs">{p.buyer}</td>
+                                                    <td className="px-6 py-4 font-mono font-bold text-xs text-blue-700">{p.parcelNumber}</td>
+                                                    <td className="px-6 py-4 font-bold text-gray-900 uppercase text-xs">{getBuyerName(p.buyer)}</td>
                                                     <td className="px-6 py-4">
                                                         {p.courier === 'TBD' ? (
                                                             <span className="text-orange-500 font-bold text-[10px] uppercase tracking-tighter">Tracking Pending</span>
@@ -2001,7 +2017,7 @@ export const PlanningDashboard: React.FC<PlanningDashboardProps> = ({
                         <div className="px-8 py-5 border-b border-gray-200 bg-gray-50 flex justify-between items-center shrink-0">
                             <div className="flex items-center gap-4">
                                 <div className="p-2 bg-indigo-100 text-indigo-700 rounded-lg"><Clipboard size={24} /></div>
-                                <div><h2 className="text-xl font-bold text-[#37352F]">Technical Review & PP Meeting Entry</h2><p className="text-xs text-gray-500 mt-0.5">Style: {ppEditingOrder.styleNo} • {ppEditingOrder.buyer}</p></div>
+                                <div><h2 className="text-xl font-bold text-[#37352F]">Technical Review & PP Meeting Entry</h2><p className="text-xs text-gray-500 mt-0.5">Style: {ppEditingOrder.styleNo} • {getBuyerName(ppEditingOrder.buyer)}</p></div>
                             </div>
                             <button onClick={() => setIsPPModalOpen(false)} className="p-2 hover:bg-gray-200 rounded-full transition-colors"><X size={24} /></button>
                         </div>

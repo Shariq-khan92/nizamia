@@ -190,6 +190,10 @@ export const jobService = {
     delete: async (id: string) => {
         const response = await apiClient.delete(`/jobs/${id}`);
         return response.data;
+    },
+    refresh: async (id: string) => {
+        const response = await apiClient.post(`/jobs/${id}/refresh`);
+        return response.data;
     }
 };
 

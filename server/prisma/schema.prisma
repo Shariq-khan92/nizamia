@@ -165,6 +165,8 @@ model SampleRow {
   labStatus       String?
   isTestingRequired Boolean?
   isApproved      Boolean?
+  currentStage    String?
+  lastUpdated     String?
 }
 
 model CompanySettings {
@@ -433,6 +435,14 @@ model Parcel {
   orderId        String?
   jobId          String?
   parcelNumber   String?
+  buyer          String?
+  recipientName  String?
+  recipientPhone String?
+  address        String?
+  courier        String?
+  trackingNo     String?
+  sentDate       String?
+  receivedDate   String?
   cartons        Int      @default(0)
   grossWeight    Float?
   netWeight      Float?
@@ -441,6 +451,9 @@ model Parcel {
   dispatchDate   String?
   status         String   @default("Pending") // Pending, Packed, Dispatched, Delivered
   documents      String?  @db.Text // JSON array of document references
+  samples        String?  @db.Text // JSON array
+  otherItems     String?  @db.Text // JSON array
+  isTrackingPending Boolean @default(false)
   invoiceRef     String?
   containerNo    String?
   sealNo         String?
@@ -462,3 +475,5 @@ model CalendarEvent {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }
+
+

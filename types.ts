@@ -364,14 +364,14 @@ export interface PurchasingRequest {
 export interface WorkOrderRequest {
   id: string;
   jobId: string;
-  serviceName: string;
-  stage: 'Cutting' | 'Embellishment' | 'Stitching' | 'Washing' | 'Finishing';
+  serviceName: string; // e.g., "Bulk Cutting: Shell Fabric"
+  stage: string;       // e.g., "Cutting", "Stitching"
   qty: number;
   unit: string;
-  status: 'Pending' | 'WO Issued' | 'Received';
+  status: string;      // "Pending", "WO Issued", "Completed"
   dateRequested: string;
   targetDate: string;
-  specs: string;
+  specs?: string;
   itemDetail?: string;
   breakdown?: string;
   woNumber?: string;
@@ -384,10 +384,10 @@ export interface IssuedWorkOrder {
   stage: string;
   dateIssued: string;
   targetDate: string;
-  status: 'Issued' | 'In Progress' | 'Completed';
+  status: 'Issued' | 'In Progress' | 'Completed' | 'Cancelled';
   items: WorkOrderRequest[];
-  notes?: string;
   totalQty: number;
+  notes?: string;
 }
 
 export interface CuttingPlanDetail {
@@ -591,7 +591,7 @@ export interface ParcelOtherItem {
 
 export interface Parcel {
   id: string;
-  parcelNo: string;
+  parcelNumber: string;
   buyer: string;
   recipientName: string;
   recipientPhone?: string;
@@ -629,3 +629,5 @@ export interface SalesContractData {
   trimsTerms: string;
   testingTerms: string;
 }
+
+

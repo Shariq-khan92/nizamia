@@ -25,6 +25,8 @@ interface MainOrdersDashboardProps {
   onCreateJob?: (job: JobBatch) => Promise<JobBatch>;
   onUpdateJob?: (id: string, job: Partial<JobBatch>) => Promise<JobBatch>;
   onDeleteJob?: (id: string) => Promise<void>;
+  onDeleteOrder?: (id: string) => Promise<void>;
+  onDuplicateOrder?: (order: Order) => Promise<void>;
 }
 
 const STATUS_LIGHTS = {
@@ -45,7 +47,7 @@ const getBuyerName = (buyer: any): string => {
 
 export const MainOrdersDashboard: React.FC<MainOrdersDashboardProps> = ({
   orders, jobs, buyers, companyDetails, onUpdateJobs, onUpdateOrder, onCreateOrder, onRowClick, onBulkImport,
-  onCreateJob, onUpdateJob, onDeleteJob
+  onCreateJob, onUpdateJob, onDeleteJob, onDeleteOrder, onDuplicateOrder
 }) => {
   const [currentView, setCurrentView] = useState<'orders' | 'jobs'>('orders');
 
@@ -58,17 +60,11 @@ export const MainOrdersDashboard: React.FC<MainOrdersDashboardProps> = ({
 
   // Visibility state for sensitive data
   const [isSensitiveDataVisible, setIsSensitiveDataVisible] = useState(true);
-  const [isViewPasswordModalOpen, setIsViewPasswordModalOpen] = useState(false);
-  const [viewPassword, setViewPassword] = useState('');
-  const [viewPasswordError, setViewPasswordError] = useState('');
 
   // Modal States
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
   const [isPenaltyModalOpen, setIsPenaltyModalOpen] = useState(false);
-
-  const [deletePassword, setDeletePassword] = useState('');
-  const [deleteError, setDeleteError] = useState('');
 
   // Penalty Modal Form State
   const [penaltyForm, setPenaltyForm] = useState<{
@@ -183,23 +179,25 @@ export const MainOrdersDashboard: React.FC<MainOrdersDashboardProps> = ({
     setSelectedOrderIds(next);
   };
 
-  const handleApplyPenalty = () => {
+  const handleApplyPenalty = async () => {
     if (selectedOrderIds.size === 0 || !onUpdateOrder) return;
 
-    orders.forEach(order => {
-      if (selectedOrderIds.has(order.id)) {
-        onUpdateOrder({
-          ...order,
-          status: penaltyForm.status,
-          penaltyType: penaltyForm.penaltyType,
-          penaltyValue: penaltyForm.penaltyValue,
-          statusReason: penaltyForm.reason
-        });
-      }
-    });
+    // Use Promise.all to update all selected orders
+    const updates = orders
+      .filter(order => selectedOrderIds.has(order.id))
+      .map(order => onUpdateOrder({
+        ...order,
+        status: penaltyForm.status,
+        penaltyType: penaltyForm.penaltyType,
+        penaltyValue: penaltyForm.penaltyValue,
+        statusReason: penaltyForm.reason
+      }));
+
+    await Promise.all(updates);
 
     setIsPenaltyModalOpen(false);
     setPenaltyForm({ status: 'Active', penaltyType: 'Fixed', penaltyValue: 0, reason: '' });
+    setSelectedOrderIds(new Set()); // Clear selection after action
   };
 
   const handlePrintTable = () => {
@@ -300,28 +298,32 @@ export const MainOrdersDashboard: React.FC<MainOrdersDashboardProps> = ({
     printWindow.document.close();
   };
 
-  const handleDuplicateSelected = (e: React.MouseEvent) => {
+  const handleDuplicateSelected = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (selectedOrderIds.size === 0) return;
-    alert(`Duplicating ${selectedOrderIds.size} selected orders...`);
+    if (selectedOrderIds.size === 0 || !onDuplicateOrder) return;
+
+    if (confirm(`Are you sure you want to duplicate ${selectedOrderIds.size} orders?`)) {
+      const ordersToDuplicate = orders.filter(o => selectedOrderIds.has(o.id));
+      await Promise.all(ordersToDuplicate.map(o => onDuplicateOrder(o)));
+      setSelectedOrderIds(new Set());
+    }
   };
 
   const initiateDeleteSelected = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (selectedOrderIds.size === 0) return;
-    setDeletePassword('');
-    setDeleteError('');
     setIsDeleteModalOpen(true);
   };
 
-  const confirmDelete = () => {
-    if (deletePassword === 'admin') {
-      alert(`${selectedOrderIds.size} orders deleted.`);
-      setSelectedOrderIds(new Set());
-      setIsDeleteModalOpen(false);
-    } else {
-      setDeleteError('Incorrect password. Try "admin"');
-    }
+  const confirmDelete = async () => {
+    if (selectedOrderIds.size === 0 || !onDeleteOrder) return;
+
+    // Iterate and delete
+    const idsToDelete = Array.from(selectedOrderIds);
+    await Promise.all(idsToDelete.map(id => onDeleteOrder(id)));
+
+    setSelectedOrderIds(new Set());
+    setIsDeleteModalOpen(false);
   };
 
   const handleBulkCommit = (data: { orders: Order[], invoices: ExportInvoice[] }) => {
@@ -330,22 +332,7 @@ export const MainOrdersDashboard: React.FC<MainOrdersDashboardProps> = ({
   };
 
   const handleToggleVisibility = () => {
-    if (isSensitiveDataVisible) {
-      setIsSensitiveDataVisible(false);
-    } else {
-      setViewPassword('');
-      setViewPasswordError('');
-      setIsViewPasswordModalOpen(true);
-    }
-  };
-
-  const confirmViewVisibility = () => {
-    if (viewPassword === 'admin') {
-      setIsSensitiveDataVisible(true);
-      setIsViewPasswordModalOpen(false);
-    } else {
-      setViewPasswordError('Incorrect password.');
-    }
+    setIsSensitiveDataVisible(!isSensitiveDataVisible);
   };
 
   return (
@@ -821,79 +808,24 @@ export const MainOrdersDashboard: React.FC<MainOrdersDashboardProps> = ({
         </div>
       )}
 
-      {/* View Sensitive Data Password Modal */}
-      {isViewPasswordModalOpen && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/20 backdrop-blur-md animate-in fade-in duration-150">
-          <div className="bg-white rounded-lg shadow-xl w-full max-sm p-6 space-y-4 m-4 border border-gray-100">
-            <div className="flex items-center gap-2 text-indigo-600">
-              <Lock size={20} />
-              <h3 className="text-lg font-bold">Authenticate View</h3>
-            </div>
-            <p className="text-sm text-gray-600">
-              Please enter admin credentials to reveal customer names and financial data.
-            </p>
-            <div className="space-y-1">
-              <input
-                type="password"
-                autoFocus
-                placeholder="••••••••"
-                value={viewPassword}
-                onChange={(e) => setViewPassword(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-                onKeyDown={(e) => e.key === 'Enter' && confirmViewVisibility()}
-              />
-              {viewPasswordError && <p className="text-xs text-red-500 font-medium">{viewPasswordError}</p>}
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                onClick={() => setIsViewPasswordModalOpen(false)}
-                className="px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmViewVisibility}
-                className="px-4 py-2 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 font-bold"
-              >
-                Reveal Data
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Delete Confirmation Modal */}
       {isDeleteModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-sm p-8 space-y-5 border border-gray-100">
             <div className="flex items-center gap-3 text-red-600">
-              <div className="p-2 bg-red-50 rounded-lg"><Lock size={24} /></div>
-              <h3 className="text-xl font-bold">Secure Access</h3>
+              <div className="p-2 bg-red-50 rounded-lg"><AlertTriangle size={24} /></div>
+              <h3 className="text-xl font-bold">Confirm Deletion</h3>
             </div>
             <p className="text-sm text-gray-500 leading-relaxed">
-              Deleting selected orders is restricted. Please provide admin credentials to continue.
+              Are you sure you want to delete {selectedOrderIds.size} selected order(s)? This action cannot be undone.
             </p>
-
-            <input
-              type="password"
-              placeholder="••••••••"
-              value={deletePassword}
-              onChange={(e) => setDeletePassword(e.target.value)}
-              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all font-mono"
-              autoFocus
-              onKeyDown={(e) => e.key === 'Enter' && confirmDelete()}
-            />
-
-            {deleteError && (
-              <p className="text-xs text-red-500 font-bold bg-red-50 p-2 rounded-lg text-center">{deleteError}</p>
-            )}
 
             <div className="flex flex-col gap-3 pt-2">
               <button
                 onClick={confirmDelete}
                 className="w-full py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-all shadow-lg shadow-red-100"
               >
-                Confirm Deletion
+                Yes, Delete {selectedOrderIds.size} Order(s)
               </button>
               <button
                 onClick={() => setIsDeleteModalOpen(false)}
