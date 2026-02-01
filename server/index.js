@@ -80,6 +80,7 @@ import purchaseOrderRoutes from './routes/purchaseOrderRoutes.js';
 import sampleRoutes from './routes/sampleRoutes.js';
 import parcelRoutes from './routes/parcelRoutes.js';
 import eventRoutes from './routes/eventRoutes.js';
+import costingRoutes from './routes/costingRoutes.js';
 
 app.use('/api/auth', authRoutes);
 app.use('/api/orders', orderRoutes);
@@ -97,6 +98,7 @@ app.use('/api/purchase-orders', purchaseOrderRoutes);
 app.use('/api/samples', sampleRoutes);
 app.use('/api/parcels', parcelRoutes);
 app.use('/api/events', eventRoutes);
+app.use('/api/costings', costingRoutes);
 
 app.get('/health', async (req, res) => {
     try {

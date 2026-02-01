@@ -292,6 +292,30 @@ export const eventService = {
     }
 };
 
+
+export const costingService = {
+    getAll: async () => {
+        const response = await apiClient.get('/costings');
+        return response.data;
+    },
+    getById: async (id: string) => {
+        const response = await apiClient.get(`/costings/${id}`);
+        return response.data;
+    },
+    create: async (data: any) => {
+        const response = await apiClient.post('/costings', data);
+        return response.data;
+    },
+    update: async (id: string, data: any) => {
+        const response = await apiClient.put(`/costings/${id}`, data);
+        return response.data;
+    },
+    delete: async (id: string) => {
+        const response = await apiClient.delete(`/costings/${id}`);
+        return response.data;
+    }
+};
+
 export const designationService = {
     getAll: async () => {
         const response = await apiClient.get('/designations');
@@ -443,6 +467,13 @@ export const api = {
     createEvent: eventService.create,
     updateEvent: eventService.update,
     deleteEvent: eventService.delete,
+
+    // Costings
+    getCostings: costingService.getAll,
+    getCostingById: costingService.getById,
+    createCosting: costingService.create,
+    updateCosting: costingService.update,
+    deleteCosting: costingService.delete,
 
     // Settings
     getSettings: settingsService.getSettings,

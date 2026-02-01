@@ -476,4 +476,40 @@ model CalendarEvent {
   updatedAt      DateTime @updatedAt
 }
 
+model CostingSheet {
+  id              String   @id @default(uuid())
+  costingId       String   @unique // The human readable ID (e.g., CST-2024-1234)
+  organizationId  String   @default("default-org")
+  status          String   @default("Draft")
+  
+  // Meta fields
+  customer        String?
+  styleNo         String?
+  description     String?
+  agency          String?
+  shipTo          String?
+  sizeRange       String?
+  baseSize        String?
+  quantity        Int?
+  date            String?
+  user            String?
+
+  // JSON fields for complex data
+  currency        String?  @db.Text // JSON: usdRate, eurRate, etc.
+  fabric          String?  @db.Text // JSON: Array of fabric items
+  cm              String?  @db.Text // JSON: cutting, stitching, etc.
+  washing         String?  @db.Text // JSON: Array of washing items
+  trims           String?  @db.Text // JSON: Array of trims items
+  embellishment   String?  @db.Text // JSON: Array of embellishment items
+  margins         String?  @db.Text // JSON: strReduction, profitPct, etc.
+  
+  // Calculated summaries (optional, for quick sorting/filtering)
+  finalFobPkr     Float?
+  finalFobUsd     Float?
+  marginPct       Float?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
 
