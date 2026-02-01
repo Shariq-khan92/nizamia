@@ -170,9 +170,17 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
   const [newOrderData, setNewOrderData] = useState<NewOrderState>(() => {
     if (initialData) {
       const migratedData = { ...initialData };
-      if (!migratedData.finishing.packingList) {
+
+      // Ensure finishing has proper structure
+      if (!migratedData.finishing || typeof migratedData.finishing !== 'object') {
+        migratedData.finishing = { finalInspectionStatus: 'Pending', packingList: [] };
+      } else if (!migratedData.finishing.packingList) {
+        // Handle legacy data structure
         const legacy = migratedData.finishing as any;
-        migratedData.finishing.packingList = [];
+        migratedData.finishing = {
+          finalInspectionStatus: legacy.finalInspectionStatus || 'Pending',
+          packingList: []
+        };
         if (legacy.foldingType || legacy.polybagSpec) {
           migratedData.finishing.packingList.push({
             id: 'legacy-pack',
@@ -185,6 +193,7 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
             assortmentMethod: legacy.originalAssortmentMethod || 'Solid Size',
             packagingSpecSheetRef: legacy.packagingSpecSheetRef,
             foldingInstructions: legacy.foldingInstructions || '',
+            packingNotes: '',
             allocation: {},
             totalAllocated: 0,
             cartonSize: '',
@@ -194,8 +203,15 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
           });
         }
       }
+
+      // Ensure packingList is an array
+      if (!Array.isArray(migratedData.finishing.packingList)) {
+        migratedData.finishing.packingList = [];
+      }
+
       return migratedData;
     }
+
     const yearShort = new Date().getFullYear().toString().slice(-2);
     const randomSeq = Math.floor(100 + Math.random() * 900);
     const randomId = `NZ-${randomSeq}-${yearShort}`;
@@ -218,7 +234,7 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [isDraftSaving, setIsDraftSaving] = useState(false);
-  const [hasDraftBeenSaved, setHasDraftBeenSaved] = useState(false);
+  const [isAutoSaveEnabled, setIsAutoSaveEnabled] = useState(true);
 
   // Delete Modal State
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -231,7 +247,9 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
   // --- Auto-Save Refs & Effect ---
   const orderDataRef = useRef(newOrderData);
   const onSaveRef = useRef(onSave);
-  const lastAutoSavedDataRef = useRef<string>('');
+  const lastAutoSavedDataRef = useRef<string>(JSON.stringify(initialData || {}));
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isFirstRenderRef = useRef(true);
 
   useEffect(() => {
     orderDataRef.current = newOrderData;
@@ -241,22 +259,53 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
     onSaveRef.current = onSave;
   }, [onSave]);
 
+  // Debounced auto-save: triggers 3 seconds after user stops making changes
+  // Only auto-save for EXISTING orders to prevent duplicate creation
   useEffect(() => {
-    const interval = setInterval(() => {
-      if (!isSubmitting && hasDraftBeenSaved) {
-        const currentData = orderDataRef.current;
-        const currentString = JSON.stringify(currentData);
-        if (currentString !== lastAutoSavedDataRef.current) {
-          setIsDraftSaving(true);
-          onSaveRef.current(currentData, false);
-          lastAutoSavedDataRef.current = currentString;
-          setLastSaved(new Date().toLocaleTimeString());
-          setTimeout(() => setIsDraftSaving(false), 1000);
-        }
+    // Skip on first render
+    if (isFirstRenderRef.current) {
+      isFirstRenderRef.current = false;
+      return;
+    }
+
+    // Only auto-save for existing orders (editing mode)
+    // For new orders, user must explicitly save to prevent duplicates
+    if (!initialData) return;
+
+    // Don't auto-save if disabled, submitting, or no changes
+    if (!isAutoSaveEnabled || isSubmitting) return;
+
+    const currentString = JSON.stringify(newOrderData);
+
+    // Skip if no changes from last saved state
+    if (currentString === lastAutoSavedDataRef.current) return;
+
+    // Clear previous timeout
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+
+    // Set new timeout for auto-save (3 seconds after last change)
+    autoSaveTimeoutRef.current = setTimeout(async () => {
+      try {
+        setIsDraftSaving(true);
+        await onSaveRef.current(orderDataRef.current, false);
+        lastAutoSavedDataRef.current = JSON.stringify(orderDataRef.current);
+        setLastSaved(new Date().toLocaleTimeString());
+      } catch (error) {
+        console.error('Auto-save failed:', error);
+      } finally {
+        setTimeout(() => setIsDraftSaving(false), 800);
       }
-    }, 30000); // Auto-save every 30s
-    return () => clearInterval(interval);
-  }, [isSubmitting, hasDraftBeenSaved]);
+    }, 3000);
+
+    // Cleanup timeout on unmount
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
+  }, [newOrderData, isSubmitting, isAutoSaveEnabled, initialData]);
 
   const handleNext = () => {
     if (currentStepIndex < STEPS.length - 1) {
@@ -276,7 +325,9 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
     try {
       await onSave(newOrderData, true);
       setSubmitSuccess(true);
-      setHasDraftBeenSaved(true);
+      // Update the auto-save reference to prevent immediate re-save
+      lastAutoSavedDataRef.current = JSON.stringify(newOrderData);
+      setLastSaved(new Date().toLocaleTimeString());
     } catch (e) {
       setSubmitError("Failed to save order. Please check your network.");
     } finally {
@@ -470,12 +521,34 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
           </div>
 
           <div className="flex items-center gap-4">
-            {lastSaved && (
-              <div className="text-right hidden md:block">
-                <div className="text-[9px] font-black text-gray-400 uppercase tracking-tighter">Draft Synchronized</div>
-                <div className="text-[11px] font-bold text-green-600">{lastSaved}</div>
-              </div>
-            )}
+            {/* Auto-save status indicator */}
+            <div className="text-right hidden md:block">
+              {isDraftSaving ? (
+                <>
+                  <div className="text-[9px] font-black text-blue-500 uppercase tracking-tighter flex items-center gap-1">
+                    <Loader2 size={10} className="animate-spin" /> Saving...
+                  </div>
+                  <div className="text-[11px] font-medium text-gray-400">Please wait</div>
+                </>
+              ) : lastSaved ? (
+                <>
+                  <div className="text-[9px] font-black text-green-500 uppercase tracking-tighter flex items-center gap-1">
+                    <Check size={10} /> Auto-saved
+                  </div>
+                  <div className="text-[11px] font-bold text-gray-600">{lastSaved}</div>
+                </>
+              ) : initialData ? (
+                <>
+                  <div className="text-[9px] font-black text-gray-400 uppercase tracking-tighter">Auto-save</div>
+                  <div className="text-[11px] font-medium text-gray-400">Enabled</div>
+                </>
+              ) : (
+                <>
+                  <div className="text-[9px] font-black text-amber-500 uppercase tracking-tighter">New Order</div>
+                  <div className="text-[11px] font-medium text-gray-400">Save to create</div>
+                </>
+              )}
+            </div>
             <button
               onClick={() => setIsDeleteModalOpen(true)}
               className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"

@@ -77,13 +77,118 @@ export const createOrder = async (req, res) => {
 // Update order
 export const updateOrder = async (req, res) => {
     try {
+        // Destructure to handle nested relations separately
+        const { sizeGroups, bom, samplingDetails, buyer, buyerId, ...orderData } = req.body;
+
+        // Handle buyer connection
+        if (buyerId) {
+            orderData.buyer = { connect: { id: buyerId } };
+        }
+
+        // Update the main order first
         const updatedOrder = await prisma.order.update({
             where: { id: req.params.id },
-            data: req.body
+            data: orderData,
+            include: {
+                buyer: true,
+                bom: true,
+                samplingDetails: true,
+                sizeGroups: true
+            }
         });
-        res.json(updatedOrder);
+
+        // If sizeGroups provided, delete existing and recreate
+        if (sizeGroups && Array.isArray(sizeGroups)) {
+            await prisma.sizeGroup.deleteMany({ where: { orderId: req.params.id } });
+            for (const sg of sizeGroups) {
+                // Only extract valid schema fields to avoid Prisma validation errors
+                await prisma.sizeGroup.create({
+                    data: {
+                        orderId: req.params.id,
+                        groupName: sg.groupName || null,
+                        unitPrice: sg.unitPrice || null,
+                        currency: sg.currency || null,
+                        colors: typeof sg.colors === 'object' ? JSON.stringify(sg.colors) : (sg.colors || null),
+                        sizes: typeof sg.sizes === 'object' ? JSON.stringify(sg.sizes) : (sg.sizes || null),
+                        breakdown: typeof sg.breakdown === 'object' ? JSON.stringify(sg.breakdown) : (sg.breakdown || null)
+                    }
+                });
+            }
+        }
+
+        // If bom provided, delete existing and recreate
+        if (bom && Array.isArray(bom)) {
+            await prisma.bomItem.deleteMany({ where: { orderId: req.params.id } });
+            for (const item of bom) {
+                // Only extract valid schema fields
+                await prisma.bomItem.create({
+                    data: {
+                        orderId: req.params.id,
+                        processGroup: item.processGroup || null,
+                        componentName: item.componentName || null,
+                        itemDetail: item.itemDetail || null,
+                        supplierRef: item.supplierRef || null,
+                        vendor: item.vendor || null,
+                        sourcingStatus: item.sourcingStatus || null,
+                        labStatus: item.labStatus || null,
+                        leadTimeDays: item.leadTimeDays || null,
+                        usageRule: item.usageRule || null,
+                        usageData: typeof item.usageData === 'object' ? JSON.stringify(item.usageData) : (item.usageData || null),
+                        wastagePercent: item.wastagePercent || null,
+                        isTestingRequired: item.isTestingRequired || null,
+                        isApproved: item.isApproved || null,
+                        uom: item.uom || null,
+                        unitsPerPack: item.unitsPerPack || null,
+                        packingUnit: item.packingUnit || null
+                    }
+                });
+            }
+        }
+
+        // If samplingDetails provided, delete existing and recreate
+        if (samplingDetails && Array.isArray(samplingDetails)) {
+            await prisma.sampleRow.deleteMany({ where: { orderId: req.params.id } });
+            for (const sample of samplingDetails) {
+                // Only extract valid schema fields
+                await prisma.sampleRow.create({
+                    data: {
+                        orderId: req.params.id,
+                        samNumber: sample.samNumber || null,
+                        type: sample.type || null,
+                        fabric: sample.fabric || null,
+                        shade: sample.shade || null,
+                        wash: sample.wash || null,
+                        baseSize: sample.baseSize || null,
+                        threadColor: sample.threadColor || null,
+                        zipperColor: sample.zipperColor || null,
+                        lining: sample.lining || null,
+                        quantity: sample.quantity || null,
+                        deadline: sample.deadline || null,
+                        status: sample.status || null,
+                        labStatus: sample.labStatus || null,
+                        isTestingRequired: sample.isTestingRequired || null,
+                        isApproved: sample.isApproved || null,
+                        currentStage: sample.currentStage || null,
+                        lastUpdated: sample.lastUpdated || null
+                    }
+                });
+            }
+        }
+
+        // Fetch the complete updated order with all relations
+        const completeOrder = await prisma.order.findUnique({
+            where: { id: req.params.id },
+            include: {
+                buyer: true,
+                bom: true,
+                samplingDetails: true,
+                sizeGroups: true
+            }
+        });
+
+        res.json(completeOrder);
     } catch (error) {
-        // Prisma throws specific error if record not found, but generic catch covers it
+        console.error("Error updating order:", error);
         res.status(400).json({ message: error.message });
     }
 };

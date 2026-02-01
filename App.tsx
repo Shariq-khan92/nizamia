@@ -266,15 +266,11 @@ export const App: React.FC = () => {
       shipMode: newOrderState.generalInfo.formData.shipMode,
       imageUrl: newOrderState.generalInfo.styleImage || undefined,
 
-      // Handle Relations - JSON fields are fine, but relations need 'create' syntax for New Orders
-      // For updates, this simple logic might overwrite or fail, so we conditionally apply 'create' only if isNew?
-      // Actually, for simplicity/MVP, let's only create nested on NEW orders.
-      // For updates, we rely on individual update APIs or assume this replaces? 
-      // Prisma update with { create: [] } ADDs items.
-
-      sizeGroups: isNew ? { create: sizeGroupsCreate } : undefined,
-      bom: isNew ? { create: bomCreate } : undefined,
-      samplingDetails: isNew ? { create: samplingCreate } : undefined,
+      // Handle Relations - for new orders use 'create', for updates pass arrays directly
+      // Backend will handle delete+recreate for updates
+      sizeGroups: isNew ? { create: sizeGroupsCreate } : newOrderState.generalInfo.sizeGroups,
+      bom: isNew ? { create: bomCreate } : newOrderState.bom,
+      samplingDetails: isNew ? { create: samplingCreate } : newOrderState.sampling,
 
       criticalPath: JSON.stringify({
         ...newOrderState.criticalPath,
